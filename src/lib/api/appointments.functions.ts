@@ -59,7 +59,11 @@ function withDisplayStatus<T extends { status: AppointmentStatus | null; schedul
   const now = new Date();
   return appts.map((a) => ({
     ...a,
-    displayStatus: deriveDisplayStatus((a.status ?? "pendiente") as AppointmentStatus, a.scheduledAt, now),
+    displayStatus: deriveDisplayStatus(
+      (a.status ?? "pendiente") as AppointmentStatus,
+      a.scheduledAt,
+      now,
+    ),
   }));
 }
 
@@ -365,9 +369,7 @@ export const updateAppointmentStatus = createServerFn({ method: "POST" })
       const scheduledDate = new Date(appointment.scheduledAt);
 
       if (scheduledDate.getTime() < Date.now()) {
-        throw new InvalidTransitionError(
-          "No se puede reactivar un turno cuyo horario ya pasó.",
-        );
+        throw new InvalidTransitionError("No se puede reactivar un turno cuyo horario ya pasó.");
       }
 
       const endDate = new Date(
@@ -385,15 +387,11 @@ export const updateAppointmentStatus = createServerFn({ method: "POST" })
       });
       const taken = others.some((other) => {
         const otherStart = new Date(other.scheduledAt);
-        const otherEnd = new Date(
-          otherStart.getTime() + (other.durationMinutes ?? 30) * 60000,
-        );
+        const otherEnd = new Date(otherStart.getTime() + (other.durationMinutes ?? 30) * 60000);
         return rangesOverlap(scheduledDate, endDate, otherStart, otherEnd);
       });
       if (taken) {
-        throw new SlotTakenError(
-          "No se puede reactivar: otro turno ya ocupa ese horario.",
-        );
+        throw new SlotTakenError("No se puede reactivar: otro turno ya ocupa ese horario.");
       }
     }
 

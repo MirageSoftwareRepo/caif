@@ -45,8 +45,8 @@ export function ProfileEditor() {
           "Se desactivó WhatsApp directo porque el teléfono ya no tiene un formato válido.",
         );
       }
-    } catch (e: any) {
-      toast.error(e?.message || "Error al actualizar perfil");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error al actualizar perfil");
     }
     setSaving(false);
   };

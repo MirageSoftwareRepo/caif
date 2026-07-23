@@ -295,6 +295,7 @@ function NewAppointmentDialog({ onCreated }: { onCreated: () => void }) {
       specialties: { specialty: { name: string; id: string } }[];
       slotMinutes: number | null;
       directBooking: boolean | null;
+      bio: string | null;
     }[]
   >([]);
   const [selectedDoctorId, setSelectedDoctorId] = useState("");
@@ -376,7 +377,7 @@ function NewAppointmentDialog({ onCreated }: { onCreated: () => void }) {
     setSearching(false);
   }, []);
 
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => doSearch(searchTerm), 300);
@@ -404,8 +405,8 @@ function NewAppointmentDialog({ onCreated }: { onCreated: () => void }) {
           data: { doctorId: selectedDoctorId, date: selectedDate },
         });
         const occupied = (existing ?? [])
-          .filter((a: any) => a.scheduledAt && a.status !== "cancelado")
-          .map((a: any) => {
+          .filter((a) => a.scheduledAt && a.status !== "cancelado")
+          .map((a) => {
             const start = new Date(a.scheduledAt);
             const dur = Number(a.durationMinutes ?? slotMinutes) || slotMinutes;
             const end = new Date(start.getTime() + dur * 60_000);

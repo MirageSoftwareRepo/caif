@@ -92,8 +92,8 @@ export function WhatsAppTab() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Error al enviar");
       toast.success("Mensaje de prueba enviado ✓");
-    } catch (err: any) {
-      toast.error(err.message || "Error al enviar mensaje de prueba");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error al enviar mensaje de prueba");
     }
     setSending(false);
   };

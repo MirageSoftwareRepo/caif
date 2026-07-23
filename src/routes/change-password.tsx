@@ -46,7 +46,7 @@ function ChangePasswordPage() {
       if (error) {
         toast.error(error.message || "Error al cambiar la contraseña");
       } else {
-        await (authClient.updateUser as any)({ mustChangePassword: false });
+        await authClient.updateUser({ mustChangePassword: false });
         await refreshUser();
         const role = user?.role;
         if (role === "admin") navigate({ to: "/admin" });

@@ -39,7 +39,7 @@ function RegisterPage() {
     const noEmail = !email;
     try {
       const finalEmail = email || `${documentNumber}@caif.local`;
-      const { error } = await (authClient.signUp.email as any)({
+      const { error } = await authClient.signUp.email({
         email: finalEmail,
         password,
         name: `${firstName} ${lastName}`,
@@ -48,11 +48,14 @@ function RegisterPage() {
         middleName: middleName || undefined,
         lastName,
         phone,
-        documentNumber,
       });
       if (error) throw error;
       createPatientRecord({ data: { email: finalEmail, documentNumber } }).catch(() => {});
-    } catch {}
+    } catch (err) {
+      setLoading(false);
+      toast.error(err instanceof Error ? err.message : "No se pudo crear la cuenta");
+      return;
+    }
     setLoading(false);
     if (noEmail) toast.info("No vas a recibir notificaciones por email");
     else toast.success("Cuenta creada exitosamente. Ya podés iniciar sesión.");

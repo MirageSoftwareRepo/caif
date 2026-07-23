@@ -38,10 +38,7 @@ export async function requireDoctor() {
   const session = await requireRole("medico");
   let doctor = await db.query.doctors.findFirst({ where: eq(doctors.userId, session.user.id) });
   if (!doctor) {
-    const [created] = await db
-      .insert(doctors)
-      .values({ userId: session.user.id })
-      .returning();
+    const [created] = await db.insert(doctors).values({ userId: session.user.id }).returning();
     doctor = created;
   }
   return { session, doctorId: doctor.id };

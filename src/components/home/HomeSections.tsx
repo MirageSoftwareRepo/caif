@@ -277,11 +277,11 @@ export function SpecialtiesGrid() {
 }
 
 export function GallerySection() {
-  const fallback = [
-    { id: "default-1", url: g1, title: "Consultorio moderno" },
-    { id: "default-2", url: g2, title: "Recepción" },
-    { id: "default-3", url: g3, title: "Pasillos" },
-    { id: "default-4", url: g4, title: "Pediatría" },
+  const fallback: { id: string; url: string; title: string; fileData: string | null }[] = [
+    { id: "default-1", url: g1, title: "Consultorio moderno", fileData: null },
+    { id: "default-2", url: g2, title: "Recepción", fileData: null },
+    { id: "default-3", url: g3, title: "Pasillos", fileData: null },
+    { id: "default-4", url: g4, title: "Pediatría", fileData: null },
   ];
   const { data: hiddenDefaults = [] } = useQuery({
     queryKey: ["gallery-hidden-defaults"],
@@ -322,7 +322,7 @@ export function GallerySection() {
                 className={`group relative overflow-hidden rounded-2xl ${i === 0 ? "sm:col-span-2 sm:row-span-2 aspect-square" : "aspect-square"}`}
               >
                 <img
-                  src={img.fileData || img.url}
+                  src={img.fileData || img.url || undefined}
                   alt={img.title ?? "Instalación del consultorio"}
                   loading="lazy"
                   className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"

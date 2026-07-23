@@ -144,9 +144,6 @@ export const updateMyDirectBooking = createServerFn({ method: "POST" })
         "Tu teléfono no tiene un formato válido. Corregilo en tu perfil antes de activar WhatsApp directo.",
       );
     }
-    await db
-      .update(doctors)
-      .set({ directBooking: data.enabled })
-      .where(eq(doctors.id, doctorId));
+    await db.update(doctors).set({ directBooking: data.enabled }).where(eq(doctors.id, doctorId));
     return { success: true };
   });

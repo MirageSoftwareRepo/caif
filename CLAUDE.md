@@ -21,17 +21,17 @@ bun docker:down       # docker compose down
 bun db:push           # drizzle-kit push (CREATE/ALTER tables)
 bun db:generate       # drizzle-kit generate (migrations to src/db/migrations/)
 bun db:migrate        # drizzle-kit migrate
-bun db:studio         # Drizzle Studio GUI
 bun db:seed           # bun run src/db/seed.ts (8 specialties + admin user)
+bunx drizzle-kit studio  # Drizzle Studio GUI (no npm script for this)
 ```
 
-CI (`.github/workflows/ci.yml`): `bun run lint` → `bunx tsc --noEmit` → `bun run test` → `bun run build`. All steps `continue-on-error: true`. There is no `typecheck` npm script — CI runs `tsc` directly. There is currently no way to run a single test file via an npm script; use `bunx vitest run <path>` directly.
+CI (`.github/workflows/ci.yml`): `bun run lint` → `bunx tsc --noEmit` → `bun run test` → `bun run build`, against a real `postgres:16` service container. Lint, Type Check, and Build are `continue-on-error: true` (non-blocking); **Unit Tests is not** — a failing test fails the CI job. There is no `typecheck` npm script — CI runs `tsc` directly. There is currently no way to run a single test file via an npm script; use `bunx vitest run <path>` directly.
 
 ## Architecture
 
 - **Vite config**: `vite.config.ts` uses `@lovable.dev/vite-tanstack-config` which bundles tanstackStart, viteReact, tailwindcss, tsConfigPaths, and nitro build. Do NOT add these plugins manually.
 - **Server entry**: `src/server.ts` launches the daily scheduler + wraps SSR with error capture. Exports `{ fetch() }` for the runtime.
-- **App entry**: `src/start.ts` creates `startInstance` with middlewares for auth (`/api/auth/*`) and WhatsApp (`/api/whatsapp/*`). NOT TanStack routes.
+- **App entry**: `src/start.ts` creates `startInstance` with middlewares for auth (`/api/auth/*`) and WhatsApp (`/api/whatsapp/*`, admin-only). NOT TanStack routes.
 - **Routing**: File-based in `src/routes/` (see `src/routes/README.md` for conventions — bare `$id` for dynamic segments, `$.tsx`/`_splat` for splats, `__root.tsx` is the only root layout). `routeTree.gen.ts` is auto-generated — do NOT edit.
 - **Server-only code**: Use `*.server.ts` suffix or `@tanstack/react-start/server-only` (NOT the `server-only` package — enforced by ESLint `no-restricted-imports`).
 - **Dev port**: 8080 everywhere (`auth-client.ts`, `.env` `BETTER_AUTH_URL`).
@@ -52,13 +52,13 @@ CI (`.github/workflows/ci.yml`): `bun run lint` → `bunx tsc --noEmit` → `bun
 ## Database
 
 - Drizzle ORM with `postgres-js` driver. `src/db/index.ts` creates the `db` client. Config in `drizzle.config.ts` (schema: `src/db/schema.ts`, dialect: postgresql, migrations dir: `src/db/migrations/`).
-- Tables: `user`, `session`, `account`, `verification` (better-auth) + `patients`, `specialties`, `doctors`, `doctorSpecialties` (junction, unique `doctorId+specialtyId`), `doctorSchedules`, `appointments`, `galleryImages`, `medicalRecords`, `notifications`.
+- Tables: `user`, `session`, `account`, `verification` (better-auth) + `patients`, `specialties`, `doctors`, `doctorSpecialties` (junction, unique `doctorId+specialtyId`), `doctorSchedules`, `appointments`, `galleryImages`, `medicalRecords`, `whatsappLog`, `notifications`.
 
 ## Business Rules
 
 - **Softlock**: System unavailable outside 08:00–21:00 ARG time. `SoftlockBanner` in `DashboardLayout` shows the banner; `throwIfSoftlocked()` (`src/lib/softlock.ts`) blocks server operations.
-- **Daily scheduler**: `src/lib/scheduler.ts` runs at 21:00 ARG via `node-cron`. Generates the next-day turnero PDF via `pdf-turnero.ts` and sends it via WhatsApp (`whatsapp.ts`). The WhatsApp client starts on server boot.
-- **WhatsApp endpoints** (middleware in `start.ts`): `/api/whatsapp/status`, `/api/whatsapp/restart`, `/api/whatsapp/qr-image`.
+- **Daily scheduler** (`src/lib/scheduler.ts`, `node-cron`, all `America/Argentina/Buenos_Aires`): 20:45 warm up the WhatsApp client → 21:00 send each opted-in doctor their next-day turnero as a per-doctor WhatsApp text message (`whatsapp-messages.ts`, staggered 3-5s apart to avoid bans) → 21:15 retry doctors not yet confirmed sent, deduped against `whatsapp_log` (`whatsapp-log.ts`) → 21:20 destroy the WhatsApp client to free memory. An hourly job also logs RSS/heap usage. `pdf-turnero.ts` still generates the printable turnero PDF used elsewhere (e.g. reception), separate from the WhatsApp text flow.
+- **WhatsApp endpoints** (middleware in `start.ts`, all admin-only): `/api/whatsapp/status`, `/api/whatsapp/init`, `/api/whatsapp/restart`, `/api/whatsapp/qr-image`, `/api/whatsapp/send-test`.
 
 ## Production (Render)
 
@@ -90,7 +90,7 @@ CI (`.github/workflows/ci.yml`): `bun run lint` → `bunx tsc --noEmit` → `bun
 - `components.json` has a `@react-bits` registry configured.
 - Admin gallery tab: separate component at `src/components/admin/GalleryTab.tsx`.
 - Path alias: `@/*` → `src/*` (tsconfig, vitest, vite config).
-- Test suite is currently empty — no `*.test.ts` files exist. `bun test` passes vacuously. Tests live in `src/test/` (vitest + jsdom + `@testing-library`).
+- Tests live either in `src/test/` (`dataUrl`, `gridLayout`, `phone`, `slots`, `storage`) or co-located next to the module under test (e.g. `src/lib/appointment-state.test.ts`); both are picked up by `vitest run` (jsdom env, `src/test/setup.ts`). CI's Unit Tests step is a blocking gate — see Commands above.
 
 ## Mobile Responsive Conventions
 

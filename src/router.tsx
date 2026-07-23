@@ -3,7 +3,11 @@ import { createRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
 
 function handleAuthError(error: unknown) {
-  if (typeof window !== "undefined" && error instanceof Error && error.message === "No autenticado") {
+  if (
+    typeof window !== "undefined" &&
+    error instanceof Error &&
+    error.message === "No autenticado"
+  ) {
     import("@/lib/auth-client").then(({ authClient }) => {
       authClient.signOut().finally(() => {
         window.location.href = "/login";

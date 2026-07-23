@@ -4,7 +4,17 @@ import path from "path";
 
 const _require = createRequire(import.meta.url);
 
-let client: any = null;
+interface WhatsAppClient {
+  on(event: "qr", listener: (qr: string) => void): void;
+  on(event: "ready", listener: () => void): void;
+  on(event: "disconnected", listener: (reason: string) => void): void;
+  removeAllListeners?(): void;
+  initialize(): Promise<void>;
+  destroy(): Promise<void>;
+  sendMessage(chatId: string, content: unknown, options?: { caption?: string }): Promise<unknown>;
+}
+
+let client: WhatsAppClient | null = null;
 let qrCodeString: string | null = null;
 let isConnected = false;
 let isStarting = false;
@@ -81,28 +91,29 @@ export async function startWhatsAppClient(): Promise<void> {
       puppeteerOpts.executablePath = process.env.CHROMIUM_PATH;
     }
 
-    client = new Client({
+    const wsClient: WhatsAppClient = new Client({
       authStrategy: new LocalAuth({ dataPath: SESSION_PATH }),
       puppeteer: puppeteerOpts,
     });
+    client = wsClient;
 
-    client.on("qr", (qr: string) => {
+    wsClient.on("qr", (qr: string) => {
       qrCodeString = qr;
       console.log("WhatsApp QR recibido — escaneá con el celular de la clínica");
     });
 
-    client.on("ready", () => {
+    wsClient.on("ready", () => {
       isConnected = true;
       qrCodeString = null;
       console.log("WhatsApp cliente listo ✓");
     });
 
-    client.on("disconnected", (reason: string) => {
+    wsClient.on("disconnected", (reason: string) => {
       isConnected = false;
       console.log("WhatsApp desconectado:", reason);
     });
 
-    await client.initialize();
+    await wsClient.initialize();
   } catch (err) {
     startError = err instanceof Error ? err.message : String(err);
     console.error("WhatsApp init error:", err);

@@ -153,9 +153,7 @@ function UsersTab() {
   const [resetPwValue, setResetPwValue] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
-  const [cancelAllTarget, setCancelAllTarget] = useState<{ id: string; name: string } | null>(
-    null,
-  );
+  const [cancelAllTarget, setCancelAllTarget] = useState<{ id: string; name: string } | null>(null);
 
   const { data: users } = useQuery({
     queryKey: ["admin-users", search, roleFilter],
@@ -289,7 +287,9 @@ function UsersTab() {
                       variant="outline"
                       onClick={() => toggleActive.mutate({ userId: u.id, isActive: !u.isActive })}
                       disabled={u.role === "admin"}
-                      title={u.role === "admin" ? "No se puede desactivar un administrador" : undefined}
+                      title={
+                        u.role === "admin" ? "No se puede desactivar un administrador" : undefined
+                      }
                       className="min-h-[44px] min-w-[44px]"
                     >
                       {u.isActive ? (
@@ -474,15 +474,14 @@ function UsersTab() {
           <DialogHeader>
             <DialogTitle>Eliminar usuario</DialogTitle>
             <DialogDescription>
-              Esta acción no se puede deshacer. Si el usuario tiene turnos asociados, se
-              desactivará en vez de eliminarse para no perder el historial.
+              Esta acción no se puede deshacer. Si el usuario tiene turnos asociados, se desactivará
+              en vez de eliminarse para no perder el historial.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
             <p className="text-sm">
               Para confirmar, escribí el nombre completo{" "}
-              <span className="font-semibold">{deleteTarget?.name}</span> exactamente como
-              aparece:
+              <span className="font-semibold">{deleteTarget?.name}</span> exactamente como aparece:
             </p>
             <Input
               value={deleteConfirmText}
@@ -606,8 +605,8 @@ function CreateUserDialog({
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
       reset();
       onOpenChange(false);
-    } catch (e: any) {
-      toast.error(e.message || "Error al crear usuario");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error al crear usuario");
     }
     setSaving(false);
   };
@@ -712,10 +711,12 @@ function CreateUserDialog({
   );
 }
 
+type Specialty = Awaited<ReturnType<typeof getAllSpecialties>>[number];
+
 function SpecialtiesTab() {
   const queryClient = useQueryClient();
   const [editOpen, setEditOpen] = useState(false);
-  const [editing, setEditing] = useState<any>(null);
+  const [editing, setEditing] = useState<Specialty | null>(null);
 
   const { data: specialties } = useQuery({
     queryKey: ["specialties-all"],
@@ -788,7 +789,7 @@ function SpecialtyDialog({
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
-  specialty: any;
+  specialty: Specialty | null;
 }) {
   const queryClient = useQueryClient();
   const [name, setName] = useState(specialty?.name ?? "");
@@ -911,10 +912,12 @@ function SpecialtyDialog({
   );
 }
 
+type Doctor = Awaited<ReturnType<typeof getAllDoctors>>[number];
+
 function DoctorsTab() {
   const queryClient = useQueryClient();
   const [editOpen, setEditOpen] = useState(false);
-  const [editing, setEditing] = useState<any>(null);
+  const [editing, setEditing] = useState<Doctor | null>(null);
 
   const { data: doctors } = useQuery({
     queryKey: ["admin-doctors"],
@@ -952,7 +955,7 @@ function DoctorsTab() {
                 </td>
                 <td className="p-4 text-muted-foreground">
                   {d.specialties
-                    ?.map((s: any) => s.specialty?.name)
+                    ?.map((s) => s.specialty?.name)
                     .filter(Boolean)
                     .join(", ") ||
                     d.specialty?.name ||
@@ -1026,7 +1029,7 @@ function DoctorsTab() {
         {doctors?.map((d) => {
           const specialtiesList =
             d.specialties
-              ?.map((s: any) => s.specialty?.name)
+              ?.map((s) => s.specialty?.name)
               .filter(Boolean)
               .join(", ") ||
             d.specialty?.name ||
@@ -1104,7 +1107,7 @@ function DoctorDialog({
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
-  doctor: any;
+  doctor: Doctor | null;
 }) {
   const queryClient = useQueryClient();
   const [specialtyIds, setSpecialtyIds] = useState<string[]>([]);
@@ -1123,7 +1126,7 @@ function DoctorDialog({
 
   useEffect(() => {
     if (open && doctor) {
-      const existing = doctor.specialties?.map((s: any) => s.specialtyId).filter(Boolean) ?? [];
+      const existing = doctor.specialties?.map((s) => s.specialtyId).filter(Boolean) ?? [];
       setSpecialtyIds(
         existing.length > 0 ? existing : doctor.specialtyId ? [doctor.specialtyId] : [],
       );

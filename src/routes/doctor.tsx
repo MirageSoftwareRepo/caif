@@ -517,7 +517,7 @@ function InsuranceTab({ userId }: { userId: string }) {
 
   const specialtiesList =
     profile?.specialties
-      ?.map((s: any) => s.specialty?.name)
+      ?.map((s) => s.specialty?.name)
       .filter(Boolean)
       .join(", ") || "—";
 
@@ -1095,7 +1095,7 @@ function MedicalRecordsTab({ userId }: { userId: string }) {
                   <Label>Paciente</Label>
                   <select
                     className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                    value={uploadForPatient?.id ?? ""}
+                    value=""
                     onChange={(e) => {
                       const p = patientsWithAppts.find((p) => p.id === e.target.value);
                       setUploadForPatient(p ?? null);
@@ -1251,8 +1251,8 @@ function DoctorNewTurnoDialog({
           data: { doctorId, date: selectedDate },
         });
         const occupied = (existing ?? [])
-          .filter((a: any) => a.scheduledAt && a.status !== "cancelado")
-          .map((a: any) => {
+          .filter((a) => a.scheduledAt && a.status !== "cancelado")
+          .map((a) => {
             const start = new Date(a.scheduledAt);
             const dur = Number(a.durationMinutes ?? slotMinutes) || slotMinutes;
             const end = new Date(start.getTime() + dur * 60_000);

@@ -159,12 +159,14 @@ function StatCard({
   );
 }
 
-function ApptRow({ appt, onCancel }: { appt: any; onCancel?: () => void }) {
+type Appointment = Awaited<ReturnType<typeof getMyAppointments>>[number];
+
+function ApptRow({ appt, onCancel }: { appt: Appointment; onCancel?: () => void }) {
   const date = new Date(appt.scheduledAt);
   const docName = appt.doctor?.user
     ? `${appt.doctor.user.firstName} ${appt.doctor.user.lastName}`
     : (appt.doctor?.user?.name ?? "Profesional");
-  const specialtyName = appt.doctor?.specialty?.name ?? appt.specialty?.name ?? "";
+  const specialtyName = appt.doctor?.specialty?.name ?? "";
   const statusColors: Record<string, string> = {
     pendiente: "bg-accent/30 text-secondary",
     confirmado: "bg-teal/20 text-teal",
@@ -253,8 +255,8 @@ function BookAppointmentDialog({ onBooked }: { onBooked: () => void }) {
 
     // Build occupied ranges as Date pairs (ignore canceled)
     const occupied = (dayAppts ?? [])
-      .filter((a: any) => a.scheduledAt && a.status !== "cancelado")
-      .map((a: any) => {
+      .filter((a) => a.scheduledAt && a.status !== "cancelado")
+      .map((a) => {
         const apptDate = new Date(a.scheduledAt);
         const durMinutes = Number(a.durationMinutes ?? SLOT_MIN) || SLOT_MIN;
         const start = new Date(
