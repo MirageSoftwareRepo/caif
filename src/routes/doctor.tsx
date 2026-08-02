@@ -7,13 +7,10 @@ import {
   ChevronRight,
   User,
   Settings2,
-  X,
   Building2,
   Plus,
   FileText,
   Search,
-  Smartphone,
-  MessageCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,23 +40,11 @@ import {
   bookAppointment,
   getDayAppointments,
 } from "@/lib/api/appointments.functions";
-import {
-  getMySchedule,
-  updateMySchedule,
-  getDoctorIdByUserId,
-  getMyDoctorProfile,
-  updateMyInsurance,
-  updateMyBio,
-  updateMyWhatsappPreference,
-  updateMyDirectBooking,
-} from "@/lib/api/doctor-schedule.functions";
+import { getDoctorIdByUserId, getMyDoctorProfile } from "@/lib/api/doctor-schedule.functions";
 import { searchPatients } from "@/lib/api/admin-users.functions";
 import { getAllSpecialties } from "@/lib/api/specialties.functions";
 import { generateSlots, type Slot } from "@/lib/slots";
-import { ProfileEditor } from "@/components/ProfileEditor";
 import { toastError } from "@/lib/toastError";
-import { Switch } from "@/components/ui/switch";
-import { isValidArPhone } from "@/lib/phone";
 import { DayGrid } from "@/components/agenda/DayGrid";
 import { WeekView } from "@/components/agenda/WeekView";
 import { FreshnessIndicator } from "@/components/agenda/FreshnessIndicator";
@@ -67,140 +52,16 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useTabVisible } from "@/lib/useTabVisible";
 import type { AgendaAppt } from "@/components/agenda/status";
 import { ArchivosTab } from "@/components/doctor/ArchivosTab";
-import {
-  DAYS,
-  DAYS_FULL,
-  startOfDay,
-  addDays,
-  startOfWeek,
-  fmtDate,
-  fmtTime,
-} from "@/components/doctor/shared";
+import { HorariosTab } from "@/components/doctor/HorariosTab";
+import { ObrasSocialesTab } from "@/components/doctor/ObrasSocialesTab";
+import { DescripcionTab } from "@/components/doctor/DescripcionTab";
+import { PerfilTab } from "@/components/doctor/PerfilTab";
+import { startOfDay, addDays, startOfWeek, fmtDate, fmtTime } from "@/components/doctor/shared";
 
 export const Route = createFileRoute("/doctor")({
   head: () => ({ meta: [{ title: "Mi Agenda · CAIF" }] }),
   component: DoctorPanel,
 });
-
-type ScheduleEntry = {
-  weekday: number;
-  startTime: string;
-  endTime: string;
-};
-
-function DoctorWhatsAppToggle({ userId }: { userId: string }) {
-  const { data: doctor, isLoading } = useQuery({
-    queryKey: ["my-doctor-profile", userId],
-    queryFn: () => getMyDoctorProfile(),
-  });
-
-  const queryClient = useQueryClient();
-
-  const toggleWhatsApp = useMutation({
-    mutationFn: (enabled: boolean) => updateMyWhatsappPreference({ data: { enabled } }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["my-doctor-profile", userId] });
-      toast.success(
-        doctor?.whatsappNotifications
-          ? "Notificaciones de WhatsApp desactivadas"
-          : "Notificaciones de WhatsApp activadas",
-      );
-    },
-    onError: () => {
-      toast.error("Error al actualizar preferencia");
-    },
-  });
-
-  const whatsappEnabled = doctor?.whatsappNotifications ?? false;
-
-  return (
-    <div className="rounded-2xl border border-border bg-background p-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="grid h-10 w-10 place-items-center rounded-full bg-primary/10">
-            <Smartphone className="h-5 w-5 text-primary" />
-          </div>
-          <div>
-            <h3 className="font-display text-lg">Notificaciones por WhatsApp</h3>
-            <p className="text-sm text-muted-foreground">
-              Recibí tu listado de turnos del día siguiente a las 21:00 ARG
-            </p>
-          </div>
-        </div>
-        <Switch
-          checked={whatsappEnabled}
-          onCheckedChange={(checked) => toggleWhatsApp.mutate(checked)}
-          disabled={toggleWhatsApp.isPending || isLoading}
-        />
-      </div>
-      {whatsappEnabled && (
-        <p className="mt-3 text-xs text-teal">
-          ✓ Activado — mañana recibirás tus turnos por WhatsApp
-        </p>
-      )}
-    </div>
-  );
-}
-
-function DoctorDirectBookingToggle({ userId }: { userId: string }) {
-  const { data: doctor, isLoading } = useQuery({
-    queryKey: ["my-doctor-profile", userId],
-    queryFn: () => getMyDoctorProfile(),
-  });
-
-  const queryClient = useQueryClient();
-
-  const toggleDirectBooking = useMutation({
-    mutationFn: (enabled: boolean) => updateMyDirectBooking({ data: { enabled } }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["my-doctor-profile", userId] });
-      toast.success(
-        doctor?.directBooking ? "WhatsApp directo desactivado" : "WhatsApp directo activado",
-      );
-    },
-    onError: (err: Error) => {
-      toast.error(err.message || "Error al actualizar preferencia");
-    },
-  });
-
-  const directBookingEnabled = doctor?.directBooking ?? false;
-  const phoneValid = isValidArPhone(doctor?.user?.phone ?? "");
-
-  return (
-    <div className="rounded-2xl border border-border bg-background p-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="grid h-10 w-10 place-items-center rounded-full bg-primary/10">
-            <MessageCircle className="h-5 w-5 text-primary" />
-          </div>
-          <div>
-            <h3 className="font-display text-lg">Coordinar turnos por WhatsApp directo</h3>
-            <p className="text-sm text-muted-foreground">
-              Los pacientes verán tu WhatsApp en lugar del calendario para sacar turno.
-            </p>
-          </div>
-        </div>
-        <Switch
-          checked={directBookingEnabled}
-          onCheckedChange={(checked) => toggleDirectBooking.mutate(checked)}
-          disabled={
-            toggleDirectBooking.isPending || isLoading || (!directBookingEnabled && !phoneValid)
-          }
-        />
-      </div>
-      {directBookingEnabled && (
-        <p className="mt-3 text-xs text-teal">
-          ✓ Activado — los pacientes coordinan por WhatsApp en vez de reservar en el sistema
-        </p>
-      )}
-      {!directBookingEnabled && !phoneValid && !isLoading && (
-        <p className="mt-3 text-xs text-destructive">
-          Tu teléfono no tiene un formato válido. Corregilo en "Perfil" para poder activar esto.
-        </p>
-      )}
-    </div>
-  );
-}
 
 function DoctorPanel() {
   const { user, loading, hasRole } = useAuth();
@@ -268,23 +129,19 @@ function DoctorPanel() {
           <AgendaTab userId={user.id} />
         </TabsContent>
         <TabsContent value="horarios">
-          <ScheduleTab userId={user.id} />
+          <HorariosTab userId={user.id} />
         </TabsContent>
         <TabsContent value="obras-sociales">
-          <InsuranceTab userId={user.id} />
+          <ObrasSocialesTab userId={user.id} />
         </TabsContent>
         <TabsContent value="fichas">
           <ArchivosTab userId={user.id} />
         </TabsContent>
         <TabsContent value="descripcion">
-          <DescriptionTab userId={user.id} />
+          <DescripcionTab userId={user.id} />
         </TabsContent>
         <TabsContent value="perfil">
-          <div className="mt-6 space-y-6">
-            <ProfileEditor />
-            <DoctorWhatsAppToggle userId={user!.id} />
-            <DoctorDirectBookingToggle userId={user!.id} />
-          </div>
+          <PerfilTab userId={user!.id} />
         </TabsContent>
       </Tabs>
     </DashboardLayout>
@@ -455,276 +312,6 @@ function AgendaTab({ userId }: { userId: string }) {
           }}
         />
       )}
-    </div>
-  );
-}
-
-function InsuranceTab({ userId }: { userId: string }) {
-  const [items, setItems] = useState<string[]>([]);
-  const [inputVal, setInputVal] = useState("");
-  const [loaded, setLoaded] = useState(false);
-
-  const { data: profile, isLoading } = useQuery({
-    queryKey: ["my-doctor-profile", userId],
-    queryFn: () => getMyDoctorProfile(),
-  });
-
-  useEffect(() => {
-    if (profile?.insuranceCompanies && !loaded) {
-      setItems(profile.insuranceCompanies);
-      setLoaded(true);
-    }
-  }, [profile, loaded]);
-
-  const addItem = () => {
-    const v = inputVal.trim().toLowerCase();
-    if (v && !items.includes(v)) setItems((p) => [...p, v]);
-    setInputVal("");
-  };
-
-  const removeItem = (i: number) => setItems((p) => p.filter((_, idx) => idx !== i));
-
-  const save = async () => {
-    try {
-      await updateMyInsurance({ data: { insuranceCompanies: items } });
-      toast.success("Obras sociales guardadas");
-    } catch (err) {
-      toastError(err, "Error al guardar");
-    }
-  };
-
-  const specialtiesList =
-    profile?.specialties
-      ?.map((s) => s.specialty?.name)
-      .filter(Boolean)
-      .join(", ") || "—";
-
-  return (
-    <div className="mt-6 space-y-6">
-      <div className="rounded-2xl border border-border bg-background p-6">
-        <h3 className="font-display mb-1 text-lg">Obras Sociales</h3>
-        <p className="mb-4 text-sm text-muted-foreground">
-          {specialtiesList !== "—" && (
-            <>
-              Especialidades: <span className="text-foreground font-medium">{specialtiesList}</span>{" "}
-              ·{" "}
-            </>
-          )}
-          Gestioná las obras sociales con las que trabajás
-        </p>
-        {isLoading ? (
-          <div className="text-muted-foreground">Cargando...</div>
-        ) : (
-          <>
-            <div className="flex flex-wrap gap-2 mb-4">
-              {items.map((item, i) => (
-                <span
-                  key={i}
-                  className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary"
-                >
-                  {item}
-                  <button
-                    onClick={() => removeItem(i)}
-                    className="ml-1 text-primary/60 hover:text-primary"
-                  >
-                    &times;
-                  </button>
-                </span>
-              ))}
-            </div>
-            <div className="flex items-center gap-2">
-              <Input
-                value={inputVal}
-                onChange={(e) => setInputVal(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    addItem();
-                  }
-                }}
-                placeholder="Ej: ipross, osde, galeno..."
-                className="max-w-xs"
-              />
-              <Button size="sm" variant="outline" onClick={addItem}>
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="mt-6 flex justify-end">
-              <Button onClick={save}>Guardar</Button>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function ScheduleTab({ userId }: { userId: string }) {
-  const queryClient = useQueryClient();
-  const [schedules, setSchedules] = useState<ScheduleEntry[]>([]);
-  const [loaded, setLoaded] = useState(false);
-
-  const { data: serverSchedules, isLoading } = useQuery({
-    queryKey: ["my-schedule", userId],
-    queryFn: () => getMySchedule(),
-  });
-
-  useEffect(() => {
-    if (serverSchedules && !loaded) {
-      setSchedules(
-        serverSchedules.map((s) => ({
-          weekday: s.weekday,
-          startTime: s.startTime,
-          endTime: s.endTime,
-        })),
-      );
-      setLoaded(true);
-    }
-  }, [serverSchedules, loaded]);
-
-  const addSlot = (weekday: number) => {
-    setSchedules((prev) => [...prev, { weekday, startTime: "08:00", endTime: "17:00" }]);
-  };
-
-  const removeSlot = (index: number) => {
-    setSchedules((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const updateSlot = (index: number, field: keyof ScheduleEntry, value: string | number) => {
-    setSchedules((prev) => prev.map((s, i) => (i === index ? { ...s, [field]: value } : s)));
-  };
-
-  const save = async () => {
-    try {
-      await updateMySchedule({ data: { schedules } });
-      queryClient.invalidateQueries({ queryKey: ["my-schedule"] });
-      toast.success("Horarios guardados");
-    } catch (err) {
-      toastError(err, "Error al guardar horarios");
-    }
-  };
-
-  const byDay = DAYS_FULL.map((_name, weekday) => ({
-    weekday,
-    label: DAYS[weekday],
-    slots: schedules.filter((s) => s.weekday === weekday),
-  }));
-
-  return (
-    <div className="mt-6 space-y-6">
-      <div className="rounded-2xl border border-border bg-background p-6">
-        <h3 className="font-display mb-4 text-lg">Configurar horarios semanales</h3>
-        {isLoading ? (
-          <div className="text-muted-foreground">Cargando horarios...</div>
-        ) : (
-          <div className="space-y-4">
-            {byDay.map(({ weekday, label, slots }) => (
-              <div key={weekday} className="rounded-xl border border-border p-4">
-                <div className="mb-3 flex items-center justify-between">
-                  <h4 className="font-medium">{label}</h4>
-                  <Button size="sm" variant="outline" onClick={() => addSlot(weekday)}>
-                    + Agregar
-                  </Button>
-                </div>
-                {slots.length === 0 && <p className="text-xs text-muted-foreground">Sin horario</p>}
-                {slots.map((slot, idx) => {
-                  const globalIdx = schedules.findIndex(
-                    (s, i) => s.weekday === weekday && schedules.indexOf(s) === i,
-                  );
-                  const actualIdx = schedules.findIndex(
-                    (s, i) =>
-                      s.weekday === weekday &&
-                      schedules.slice(0, i).filter((x) => x.weekday === weekday).length === idx,
-                  );
-                  return (
-                    <div key={idx} className="mb-2 flex items-center gap-3">
-                      <Input
-                        type="time"
-                        value={slot.startTime}
-                        onChange={(e) => updateSlot(actualIdx, "startTime", e.target.value)}
-                        className="w-24 sm:w-32"
-                      />
-                      <span className="text-muted-foreground">a</span>
-                      <Input
-                        type="time"
-                        value={slot.endTime}
-                        onChange={(e) => updateSlot(actualIdx, "endTime", e.target.value)}
-                        className="w-24 sm:w-32"
-                      />
-                      <Button size="sm" variant="destructive" onClick={() => removeSlot(actualIdx)}>
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-        )}
-        <div className="mt-6 flex justify-end">
-          <Button onClick={save}>Guardar horarios</Button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function DescriptionTab({ userId }: { userId: string }) {
-  const { data: profile, isLoading } = useQuery({
-    queryKey: ["my-doctor-profile-bio", userId],
-    queryFn: () => getMyDoctorProfile(),
-  });
-
-  const [bio, setBio] = useState("");
-  const [loaded, setLoaded] = useState(false);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    if (profile && !loaded) {
-      setBio(profile.bio ?? "");
-      setLoaded(true);
-    }
-  }, [profile, loaded]);
-
-  const save = async () => {
-    setSaving(true);
-    try {
-      await updateMyBio({ data: { bio } });
-      toast.success("Descripción guardada");
-    } catch (err) {
-      toastError(err, "Error al guardar la descripción");
-    }
-    setSaving(false);
-  };
-
-  return (
-    <div className="mt-6 space-y-6">
-      <div className="rounded-2xl border border-border bg-background p-6">
-        <h3 className="font-display mb-1 text-lg">Descripción profesional</h3>
-        <p className="mb-4 text-sm text-muted-foreground">
-          Esta descripción se muestra a los pacientes al seleccionar un profesional. Ej: "Realizo
-          evaluaciones psicodiagnósticas con tests de personalidad (Rorschach, Zulliger)."
-        </p>
-        {isLoading ? (
-          <div className="text-muted-foreground">Cargando...</div>
-        ) : (
-          <>
-            <textarea
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm min-h-[120px] resize-y"
-              placeholder="Describí tu enfoque profesional, técnicas que utilizás, etc."
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              maxLength={500}
-            />
-            <p className="mt-1 text-xs text-muted-foreground">{bio.length}/500 caracteres</p>
-            <div className="mt-4 flex justify-end">
-              <Button onClick={save} disabled={saving}>
-                {saving ? "Guardando..." : "Guardar descripción"}
-              </Button>
-            </div>
-          </>
-        )}
-      </div>
     </div>
   );
 }
