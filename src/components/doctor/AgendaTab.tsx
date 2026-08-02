@@ -45,6 +45,7 @@ import { useTabVisible } from "@/lib/useTabVisible";
 import type { AgendaAppt } from "@/components/agenda/status";
 import { startOfDay, addDays, startOfWeek, fmtDate } from "@/components/doctor/shared";
 import { BlockSlotDialog } from "@/components/doctor/BlockSlotDialog";
+import { QuickPatientDialog } from "@/components/doctor/QuickPatientDialog";
 
 function toYMD(d: Date): string {
   const y = d.getFullYear();
@@ -58,6 +59,7 @@ export function AgendaTab({ userId }: { userId: string }) {
   const [cursor, setCursor] = useState<Date>(startOfDay(new Date()));
   const [turnoOpen, setTurnoOpen] = useState(false);
   const [blockOpen, setBlockOpen] = useState(false);
+  const [promotingBlockId, setPromotingBlockId] = useState<string | null>(null);
 
   const { data: doctorId } = useQuery({
     queryKey: ["my-doctor-id", userId],
@@ -237,6 +239,7 @@ export function AgendaTab({ userId }: { userId: string }) {
           pendingIds={pendingIds}
           blocks={timeBlocks ?? []}
           onDeleteBlock={handleDeleteBlock}
+          onAddPatientBlock={setPromotingBlockId}
         />
       ) : (
         <WeekView
@@ -248,6 +251,18 @@ export function AgendaTab({ userId }: { userId: string }) {
           }}
         />
       )}
+
+      <QuickPatientDialog
+        blockId={promotingBlockId}
+        onOpenChange={(v) => {
+          if (!v) setPromotingBlockId(null);
+        }}
+        onPromoted={() => {
+          setPromotingBlockId(null);
+          refetchBlocks();
+          refetch();
+        }}
+      />
     </div>
   );
 }

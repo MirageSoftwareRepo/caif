@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Ban, Search, Trash2 } from "lucide-react";
+import { Ban, Plus, Search, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -51,6 +51,7 @@ export function DayGrid({
   pendingIds,
   blocks = [],
   onDeleteBlock,
+  onAddPatientBlock,
 }: {
   date: Date;
   appts: AgendaAppt[];
@@ -60,6 +61,7 @@ export function DayGrid({
   pendingIds: Set<string>;
   blocks?: DayGridBlock[];
   onDeleteBlock?: (id: string) => void;
+  onAddPatientBlock?: (id: string) => void;
 }) {
   const [patientSearch, setPatientSearch] = useState("");
   const [historyPatient, setHistoryPatient] = useState<AgendaAppt["patient"] | null>(null);
@@ -192,6 +194,7 @@ export function DayGrid({
                 pendingIds={pendingIds}
                 blocks={variant === "doctor" ? blocks : []}
                 onDeleteBlock={onDeleteBlock}
+                onAddPatientBlock={onAddPatientBlock}
                 onShowHistory={variant === "doctor" ? (p) => setHistoryPatient(p) : undefined}
                 openId={openId}
                 setOpenId={setOpenId}
@@ -259,6 +262,7 @@ function GridColumn({
   pendingIds,
   blocks,
   onDeleteBlock,
+  onAddPatientBlock,
   onShowHistory,
   openId,
   setOpenId,
@@ -272,6 +276,7 @@ function GridColumn({
   pendingIds: Set<string>;
   blocks: DayGridBlock[];
   onDeleteBlock?: (id: string) => void;
+  onAddPatientBlock?: (id: string) => void;
   onShowHistory?: (patient: AgendaAppt["patient"]) => void;
   openId: string | null;
   setOpenId: (id: string | null) => void;
@@ -379,16 +384,28 @@ function GridColumn({
                 <Ban className="h-3 w-3 shrink-0 text-muted-foreground" aria-hidden="true" />
                 <span className="truncate font-medium text-foreground">Bloqueado</span>
               </div>
-              {onDeleteBlock && (
-                <button
-                  type="button"
-                  aria-label="Eliminar bloqueo"
-                  className="shrink-0 text-muted-foreground hover:text-destructive"
-                  onClick={() => onDeleteBlock(block.id)}
-                >
-                  <Trash2 className="h-3 w-3" />
-                </button>
-              )}
+              <div className="flex shrink-0 items-center gap-1.5">
+                {onAddPatientBlock && (
+                  <button
+                    type="button"
+                    aria-label="Agregar paciente a este bloqueo"
+                    className="text-muted-foreground hover:text-primary"
+                    onClick={() => onAddPatientBlock(block.id)}
+                  >
+                    <Plus className="h-3 w-3" />
+                  </button>
+                )}
+                {onDeleteBlock && (
+                  <button
+                    type="button"
+                    aria-label="Eliminar bloqueo"
+                    className="text-muted-foreground hover:text-destructive"
+                    onClick={() => onDeleteBlock(block.id)}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
             </div>
             {pxHeight > 32 && (
               <div className="truncate text-muted-foreground">
