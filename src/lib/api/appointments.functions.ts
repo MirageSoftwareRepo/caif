@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { db } from "@/db";
-import { appointments, doctors, doctorSchedules } from "@/db/schema";
+import { appointments, doctors, doctorSchedules, doctorTimeBlocks } from "@/db/schema";
 import { eq, and, gte, lt, desc, ne } from "drizzle-orm";
 import { throwIfSoftlocked } from "@/lib/softlock";
 import { requireSession, requireRole, requireDoctor, AuthError } from "./_guards";
@@ -260,21 +260,35 @@ export const getDayAppointments = createServerFn({ method: "POST" })
     const dayStart = new Date(year, month - 1, day, 0, 0, 0, 0);
     const dayEnd = new Date(year, month - 1, day, 23, 59, 59, 999);
 
-    return db
-      .select({
-        scheduledAt: appointments.scheduledAt,
-        durationMinutes: appointments.durationMinutes,
-        status: appointments.status,
-      })
-      .from(appointments)
-      .where(
-        and(
-          eq(appointments.doctorId, data.doctorId),
-          gte(appointments.scheduledAt, dayStart),
-          lt(appointments.scheduledAt, dayEnd),
-          ne(appointments.status, "cancelado"),
+    const [appts, blocks] = await Promise.all([
+      db
+        .select({
+          scheduledAt: appointments.scheduledAt,
+          durationMinutes: appointments.durationMinutes,
+          status: appointments.status,
+        })
+        .from(appointments)
+        .where(
+          and(
+            eq(appointments.doctorId, data.doctorId),
+            gte(appointments.scheduledAt, dayStart),
+            lt(appointments.scheduledAt, dayEnd),
+            ne(appointments.status, "cancelado"),
+          ),
         ),
-      );
+      db
+        .select({ startAt: doctorTimeBlocks.startAt, endAt: doctorTimeBlocks.endAt })
+        .from(doctorTimeBlocks)
+        .where(
+          and(
+            eq(doctorTimeBlocks.doctorId, data.doctorId),
+            gte(doctorTimeBlocks.startAt, dayStart),
+            lt(doctorTimeBlocks.startAt, dayEnd),
+          ),
+        ),
+    ]);
+
+    return { appointments: appts, blocks };
   });
 
 export const rescheduleAppointment = createServerFn({ method: "POST" })
