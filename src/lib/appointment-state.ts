@@ -47,12 +47,14 @@ export interface DoctorScheduleBlock {
   endTime: string; // HH:MM
 }
 
+// `weekday` en doctorSchedules usa lunes = 0, igual que src/lib/slots.ts.
+// Date.getDay() usa domingo = 0, de ahi el desplazamiento.
 export function isWithinDoctorSchedule(
   scheduledAt: Date,
   durationMinutes: number,
   schedules: DoctorScheduleBlock[],
 ): boolean {
-  const weekday = scheduledAt.getDay();
+  const weekday = (scheduledAt.getDay() + 6) % 7;
   const startMinutes = scheduledAt.getHours() * 60 + scheduledAt.getMinutes();
   const endMinutes = startMinutes + durationMinutes;
 

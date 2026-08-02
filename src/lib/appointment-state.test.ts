@@ -107,13 +107,14 @@ describe("deriveDisplayStatus", () => {
 });
 
 describe("isWithinDoctorSchedule", () => {
+  // weekday usa lunes = 0 (ver appointment-state.ts); 2026-07-15 es miercoles -> weekday 2.
   const schedules = [
-    { weekday: 3, startTime: "09:00", endTime: "13:00" },
-    { weekday: 3, startTime: "15:00", endTime: "18:00" },
+    { weekday: 2, startTime: "09:00", endTime: "13:00" },
+    { weekday: 2, startTime: "15:00", endTime: "18:00" },
   ];
 
   it("accepts a slot fully inside a block", () => {
-    // 2026-07-15 is a Wednesday (weekday 3)
+    // 2026-07-15 is a Wednesday (weekday 2)
     const scheduledAt = new Date("2026-07-15T10:00:00");
     expect(isWithinDoctorSchedule(scheduledAt, 30, schedules)).toBe(true);
   });
