@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, Plus, Search } from "lucide-react";
+import { Ban, ChevronLeft, ChevronRight, Plus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,17 +37,27 @@ import { searchPatients } from "@/lib/api/admin-users.functions";
 import { getAllSpecialties } from "@/lib/api/specialties.functions";
 import { generateSlots, type Slot } from "@/lib/slots";
 import { blocksToOccupied } from "@/lib/time-blocks";
+import { getMyTimeBlocks, deleteTimeBlock } from "@/lib/api/time-blocks.functions";
 import { DayGrid } from "@/components/agenda/DayGrid";
 import { WeekView } from "@/components/agenda/WeekView";
 import { FreshnessIndicator } from "@/components/agenda/FreshnessIndicator";
 import { useTabVisible } from "@/lib/useTabVisible";
 import type { AgendaAppt } from "@/components/agenda/status";
 import { startOfDay, addDays, startOfWeek, fmtDate } from "@/components/doctor/shared";
+import { BlockSlotDialog } from "@/components/doctor/BlockSlotDialog";
+
+function toYMD(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
 
 export function AgendaTab({ userId }: { userId: string }) {
   const [view, setView] = useState<"day" | "week">("day");
   const [cursor, setCursor] = useState<Date>(startOfDay(new Date()));
   const [turnoOpen, setTurnoOpen] = useState(false);
+  const [blockOpen, setBlockOpen] = useState(false);
 
   const { data: doctorId } = useQuery({
     queryKey: ["my-doctor-id", userId],
@@ -88,6 +98,24 @@ export function AgendaTab({ userId }: { userId: string }) {
       }),
     [appts, range],
   );
+
+  const rangeFrom = toYMD(range.from);
+  const rangeTo = toYMD(addDays(range.to, -1));
+
+  const { data: timeBlocks, refetch: refetchBlocks } = useQuery({
+    queryKey: ["my-time-blocks", rangeFrom, rangeTo],
+    queryFn: () => getMyTimeBlocks({ data: { from: rangeFrom, to: rangeTo } }),
+  });
+
+  const handleDeleteBlock = async (id: string) => {
+    try {
+      await deleteTimeBlock({ data: { blockId: id } });
+      toast.success("Bloqueo eliminado");
+      refetchBlocks();
+    } catch (e) {
+      toastError(e, "No se pudo eliminar el bloqueo");
+    }
+  };
 
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
 
@@ -145,11 +173,21 @@ export function AgendaTab({ userId }: { userId: string }) {
             <Button onClick={() => setTurnoOpen(true)} className="gap-2">
               <Plus className="h-4 w-4" /> Nuevo turno
             </Button>
+            <Button variant="outline" onClick={() => setBlockOpen(true)} className="min-h-[44px]">
+              <Ban className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Bloquear horario</span>
+            </Button>
             <DoctorNewTurnoDialog
               doctorId={doctorId}
               open={turnoOpen}
               onOpenChange={setTurnoOpen}
               onCreated={refetch}
+            />
+            <BlockSlotDialog
+              open={blockOpen}
+              onOpenChange={setBlockOpen}
+              defaultDate={toYMD(cursor)}
+              onCreated={refetchBlocks}
             />
           </>
         )}
@@ -197,6 +235,8 @@ export function AgendaTab({ userId }: { userId: string }) {
           onUpdateStatus={updateStatus}
           onChanged={refetch}
           pendingIds={pendingIds}
+          blocks={timeBlocks ?? []}
+          onDeleteBlock={handleDeleteBlock}
         />
       ) : (
         <WeekView

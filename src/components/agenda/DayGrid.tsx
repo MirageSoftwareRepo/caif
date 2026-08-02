@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search } from "lucide-react";
+import { Ban, Search, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,6 +35,13 @@ function patientName(appt: AgendaAppt) {
 
 type Column = { key: string; label: string; appts: AgendaAppt[] };
 
+export type DayGridBlock = {
+  id: string;
+  startAt: Date | string;
+  endAt: Date | string;
+  reason: string | null;
+};
+
 export function DayGrid({
   date,
   appts,
@@ -42,6 +49,8 @@ export function DayGrid({
   onUpdateStatus,
   onChanged,
   pendingIds,
+  blocks = [],
+  onDeleteBlock,
 }: {
   date: Date;
   appts: AgendaAppt[];
@@ -49,6 +58,8 @@ export function DayGrid({
   onUpdateStatus: (id: string, status: AgendaAppt["status"]) => void;
   onChanged: () => void;
   pendingIds: Set<string>;
+  blocks?: DayGridBlock[];
+  onDeleteBlock?: (id: string) => void;
 }) {
   const [patientSearch, setPatientSearch] = useState("");
   const [historyPatient, setHistoryPatient] = useState<AgendaAppt["patient"] | null>(null);
@@ -89,7 +100,7 @@ export function DayGrid({
 
   const showSelector = variant === "staff" && columns.length > 1;
 
-  if (appts.length === 0) {
+  if (appts.length === 0 && blocks.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-border bg-background p-10 text-center text-muted-foreground">
         No hay turnos para este día.
@@ -130,7 +141,7 @@ export function DayGrid({
         </div>
       )}
 
-      {filtered.length === 0 ? (
+      {filtered.length === 0 && blocks.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border bg-background p-10 text-center text-muted-foreground">
           No se encontraron turnos para "{patientSearch}".
         </div>
@@ -179,6 +190,8 @@ export function DayGrid({
                 onUpdateStatus={onUpdateStatus}
                 onChanged={onChanged}
                 pendingIds={pendingIds}
+                blocks={variant === "doctor" ? blocks : []}
+                onDeleteBlock={onDeleteBlock}
                 onShowHistory={variant === "doctor" ? (p) => setHistoryPatient(p) : undefined}
                 openId={openId}
                 setOpenId={setOpenId}
@@ -244,6 +257,8 @@ function GridColumn({
   onUpdateStatus,
   onChanged,
   pendingIds,
+  blocks,
+  onDeleteBlock,
   onShowHistory,
   openId,
   setOpenId,
@@ -255,6 +270,8 @@ function GridColumn({
   onUpdateStatus: (id: string, status: AgendaAppt["status"]) => void;
   onChanged: () => void;
   pendingIds: Set<string>;
+  blocks: DayGridBlock[];
+  onDeleteBlock?: (id: string) => void;
   onShowHistory?: (patient: AgendaAppt["patient"]) => void;
   openId: string | null;
   setOpenId: (id: string | null) => void;
@@ -342,6 +359,43 @@ function GridColumn({
               />
             </PopoverContent>
           </Popover>
+        );
+      })}
+
+      {blocks.map((block) => {
+        const start = new Date(block.startAt);
+        const end = new Date(block.endAt);
+        const durationMinutes = Math.max((end.getTime() - start.getTime()) / 60_000, 0);
+        const { topMin, heightMin } = blockPosition(start, durationMinutes);
+        const pxHeight = Math.max(heightMin * PX_PER_MIN - 2, 20);
+        return (
+          <div
+            key={block.id}
+            className="absolute overflow-hidden rounded-md border border-dashed border-muted-foreground/50 bg-muted/60 px-1.5 py-1 text-[11px] leading-tight"
+            style={{ top: topMin * PX_PER_MIN, height: pxHeight, left: 2, right: 2 }}
+          >
+            <div className="flex items-center justify-between gap-1">
+              <div className="flex min-w-0 items-center gap-1">
+                <Ban className="h-3 w-3 shrink-0 text-muted-foreground" aria-hidden="true" />
+                <span className="truncate font-medium text-foreground">Bloqueado</span>
+              </div>
+              {onDeleteBlock && (
+                <button
+                  type="button"
+                  aria-label="Eliminar bloqueo"
+                  className="shrink-0 text-muted-foreground hover:text-destructive"
+                  onClick={() => onDeleteBlock(block.id)}
+                >
+                  <Trash2 className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+            {pxHeight > 32 && (
+              <div className="truncate text-muted-foreground">
+                {fmtTime(start)} – {fmtTime(end)}
+              </div>
+            )}
+          </div>
         );
       })}
     </div>
