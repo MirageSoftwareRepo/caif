@@ -133,6 +133,21 @@ export const doctorSchedules = pgTable("doctor_schedules", {
   endTime: text("end_time").notNull(),
 });
 
+// Plan 10, Fase 1. Bloqueos de agenda que el medico marca para atender pacientes
+// extraparticulares no registrados. Tabla nueva y aditiva: no toca datos existentes,
+// por lo que es segura bajo el `drizzle-kit push` automatico del deploy.
+export const doctorTimeBlocks = pgTable("doctor_time_blocks", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  doctorId: uuid("doctor_id")
+    .notNull()
+    .references(() => doctors.id, { onDelete: "cascade" }),
+  startAt: timestamp("start_at").notNull(),
+  endAt: timestamp("end_at").notNull(),
+  reason: text("reason"),
+  createdByUserId: text("created_by_user_id").references(() => user.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const appointments = pgTable("appointments", {
   id: uuid("id").primaryKey().defaultRandom(),
   patientId: text("patient_id")
@@ -221,6 +236,7 @@ export const doctorsRelations = relations(doctors, ({ one, many }) => ({
   specialties: many(doctorSpecialties),
   schedules: many(doctorSchedules),
   medicalRecords: many(medicalRecords),
+  timeBlocks: many(doctorTimeBlocks),
 }));
 
 export const doctorSpecialtiesRelations = relations(doctorSpecialties, ({ one }) => ({
@@ -259,4 +275,8 @@ export const doctorSchedulesRelations = relations(doctorSchedules, ({ one }) => 
 
 export const specialtiesRelations = relations(specialties, ({ many }) => ({
   doctors: many(doctorSpecialties),
+}));
+
+export const doctorTimeBlocksRelations = relations(doctorTimeBlocks, ({ one }) => ({
+  doctor: one(doctors, { fields: [doctorTimeBlocks.doctorId], references: [doctors.id] }),
 }));
