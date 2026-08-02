@@ -38,6 +38,7 @@ import { getDoctorSchedule } from "@/lib/api/doctor-schedule.functions";
 import { getAllSpecialties } from "@/lib/api/specialties.functions";
 import { ProfileEditor } from "@/components/ProfileEditor";
 import { generateSlots, type Slot } from "@/lib/slots";
+import { blocksToOccupied } from "@/lib/time-blocks";
 import { toastError } from "@/lib/toastError";
 import { DayGrid } from "@/components/agenda/DayGrid";
 import { WeekView } from "@/components/agenda/WeekView";
@@ -401,17 +402,22 @@ function NewAppointmentDialog({ onCreated }: { onCreated: () => void }) {
         const selectedDoctor = doctors.find((d) => d.id === selectedDoctorId);
         const slotMinutes = selectedDoctor?.slotMinutes ?? 30;
 
-        const existing = await getDayAppointments({
+        const { appointments: existing, blocks } = await getDayAppointments({
           data: { doctorId: selectedDoctorId, date: selectedDate },
         });
-        const occupied = (existing ?? [])
-          .filter((a) => a.scheduledAt && a.status !== "cancelado")
-          .map((a) => {
-            const start = new Date(a.scheduledAt);
-            const dur = Number(a.durationMinutes ?? slotMinutes) || slotMinutes;
-            const end = new Date(start.getTime() + dur * 60_000);
-            return { start, end };
-          });
+        const occupied = [
+          ...(existing ?? [])
+            .filter((a) => a.scheduledAt && a.status !== "cancelado")
+            .map((a) => {
+              const start = new Date(a.scheduledAt);
+              const dur = Number(a.durationMinutes ?? slotMinutes) || slotMinutes;
+              const end = new Date(start.getTime() + dur * 60_000);
+              return { start, end };
+            }),
+          ...blocksToOccupied(
+            (blocks ?? []).map((b) => ({ startAt: new Date(b.startAt), endAt: new Date(b.endAt) })),
+          ),
+        ];
 
         setSlots(
           generateSlots({

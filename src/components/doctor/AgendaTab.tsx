@@ -36,6 +36,7 @@ import {
 import { searchPatients } from "@/lib/api/admin-users.functions";
 import { getAllSpecialties } from "@/lib/api/specialties.functions";
 import { generateSlots, type Slot } from "@/lib/slots";
+import { blocksToOccupied } from "@/lib/time-blocks";
 import { DayGrid } from "@/components/agenda/DayGrid";
 import { WeekView } from "@/components/agenda/WeekView";
 import { FreshnessIndicator } from "@/components/agenda/FreshnessIndicator";
@@ -315,17 +316,22 @@ function DoctorNewTurnoDialog({
         const [yr, mo, dy] = selectedDate.split("-").map(Number);
         const date = new Date(yr, mo - 1, dy);
 
-        const existing = await getDayAppointments({
+        const { appointments: existing, blocks } = await getDayAppointments({
           data: { doctorId, date: selectedDate },
         });
-        const occupied = (existing ?? [])
-          .filter((a) => a.scheduledAt && a.status !== "cancelado")
-          .map((a) => {
-            const start = new Date(a.scheduledAt);
-            const dur = Number(a.durationMinutes ?? slotMinutes) || slotMinutes;
-            const end = new Date(start.getTime() + dur * 60_000);
-            return { start, end };
-          });
+        const occupied = [
+          ...(existing ?? [])
+            .filter((a) => a.scheduledAt && a.status !== "cancelado")
+            .map((a) => {
+              const start = new Date(a.scheduledAt);
+              const dur = Number(a.durationMinutes ?? slotMinutes) || slotMinutes;
+              const end = new Date(start.getTime() + dur * 60_000);
+              return { start, end };
+            }),
+          ...blocksToOccupied(
+            (blocks ?? []).map((b) => ({ startAt: new Date(b.startAt), endAt: new Date(b.endAt) })),
+          ),
+        ];
 
         setSlots(
           generateSlots({

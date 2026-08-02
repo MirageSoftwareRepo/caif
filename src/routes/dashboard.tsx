@@ -36,6 +36,7 @@ import { getDoctorsBySpecialty } from "@/lib/api/admin-doctors.functions";
 import { getDoctorSchedule } from "@/lib/api/doctor-schedule.functions";
 import { ProfileEditor } from "@/components/ProfileEditor";
 import { generateSlots } from "@/lib/slots";
+import { blocksToOccupied } from "@/lib/time-blocks";
 import { formatArPhone, toWaLink } from "@/lib/phone";
 import { toastError } from "@/lib/toastError";
 export const Route = createFileRoute("/dashboard")({
@@ -254,23 +255,31 @@ function BookAppointmentDialog({ onBooked }: { onBooked: () => void }) {
     const targetDate = new Date(yr, mo - 1, dy);
 
     // Build occupied ranges as Date pairs (ignore canceled)
-    const occupied = (dayAppts ?? [])
-      .filter((a) => a.scheduledAt && a.status !== "cancelado")
-      .map((a) => {
-        const apptDate = new Date(a.scheduledAt);
-        const durMinutes = Number(a.durationMinutes ?? SLOT_MIN) || SLOT_MIN;
-        const start = new Date(
-          apptDate.getFullYear(),
-          apptDate.getMonth(),
-          apptDate.getDate(),
-          apptDate.getHours(),
-          apptDate.getMinutes(),
-          0,
-          0,
-        );
-        const end = new Date(start.getTime() + durMinutes * 60_000);
-        return { start, end };
-      });
+    const occupied = [
+      ...(dayAppts.appointments ?? [])
+        .filter((a) => a.scheduledAt && a.status !== "cancelado")
+        .map((a) => {
+          const apptDate = new Date(a.scheduledAt);
+          const durMinutes = Number(a.durationMinutes ?? SLOT_MIN) || SLOT_MIN;
+          const start = new Date(
+            apptDate.getFullYear(),
+            apptDate.getMonth(),
+            apptDate.getDate(),
+            apptDate.getHours(),
+            apptDate.getMinutes(),
+            0,
+            0,
+          );
+          const end = new Date(start.getTime() + durMinutes * 60_000);
+          return { start, end };
+        }),
+      ...blocksToOccupied(
+        (dayAppts.blocks ?? []).map((b) => ({
+          startAt: new Date(b.startAt),
+          endAt: new Date(b.endAt),
+        })),
+      ),
+    ];
 
     return generateSlots({
       date: targetDate,
