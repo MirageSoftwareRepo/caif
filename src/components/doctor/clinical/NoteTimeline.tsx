@@ -143,7 +143,17 @@ export function NoteTimeline({
             <p className="text-sm">Elegí una nota del timeline o iniciá una nueva.</p>
           </div>
         ) : fullNote.status === "borrador" ? (
-          <NoteEditor note={fullNote} onSaved={handleSaved} onSigned={handleSigned} />
+          // `key` obligatoria: useEditor de Tiptap crea la instancia una sola vez y
+          // `content` solo se lee al montar. Sin key, al saltar a una nota que ya
+          // estaba en la cache de react-query el componente no se desmonta y el
+          // editor sigue mostrando el cuerpo de la nota anterior — y el autosave
+          // siguiente lo escribe en la nota nueva.
+          <NoteEditor
+            key={fullNote.id}
+            note={fullNote}
+            onSaved={handleSaved}
+            onSigned={handleSigned}
+          />
         ) : (
           <NoteViewer
             note={fullNote}

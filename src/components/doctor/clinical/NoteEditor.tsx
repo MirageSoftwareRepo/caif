@@ -50,6 +50,11 @@ export function NoteEditor({
   const [signOpen, setSignOpen] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingRef = useRef(false);
+  // El autosave diferido y el flush al desmontar tienen que llamar SIEMPRE a la
+  // ultima version de save(): un setTimeout captura el closure del render en que
+  // se programo, y si entre medio el medico toco Motivo o Diagnostico, ese closure
+  // guardaria los valores viejos y pisaria lo que acaba de escribir.
+  const saveRef = useRef<() => Promise<void>>(async () => {});
 
   const editor = useEditor({
     extensions: [StarterKit],
@@ -65,16 +70,20 @@ export function NoteEditor({
     scheduleSave();
   });
 
+  // Al desmontar (cambio de nota, cambio de paciente, salir de la pestaña) hay que
+  // vaciar lo que quedo pendiente: cancelar el timer a secas tiraba a la basura
+  // hasta 10 segundos de lo que el medico habia escrito.
   useEffect(() => {
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
+      if (pendingRef.current) void saveRef.current();
     };
   }, [note.id]);
 
   function scheduleSave() {
     pendingRef.current = true;
     if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => void save(), AUTOSAVE_DELAY_MS);
+    saveTimer.current = setTimeout(() => void saveRef.current(), AUTOSAVE_DELAY_MS);
   }
 
   async function save() {
@@ -98,6 +107,8 @@ export function NoteEditor({
     }
     setSaving(false);
   }
+
+  saveRef.current = save;
 
   function markDirty() {
     pendingRef.current = true;
