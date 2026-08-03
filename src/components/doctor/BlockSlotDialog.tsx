@@ -97,15 +97,19 @@ export function BlockSlotDialog({
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="block-reason">Motivo (opcional)</Label>
+            <Label htmlFor="block-reason">Paciente o motivo (opcional)</Label>
             <Input
               id="block-reason"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="Paciente particular, reunión, etc."
+              placeholder="Nombre del paciente, reunión, etc."
               maxLength={200}
               className="min-h-[44px]"
             />
+            <p className="text-xs text-muted-foreground">
+              Si es un paciente sin cuenta, escribí su nombre para reconocerlo en la agenda. Por
+              favor solicitar al cliente la creación de un usuario.
+            </p>
           </div>
           <p className="text-xs text-muted-foreground">
             El horario deja de ofrecerse a pacientes y a recepción. Si después querés registrar la

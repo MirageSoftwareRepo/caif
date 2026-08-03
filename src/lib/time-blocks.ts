@@ -45,3 +45,12 @@ export function validateTimeBlock(params: {
 
   return null;
 }
+
+// Etiqueta visible de un bloqueo en la grilla. El medico puede escribir ahi el
+// nombre de alguien que ocupa el horario pero todavia no tiene cuenta; si no
+// escribio nada, el bloqueo se sigue mostrando como "Bloqueado".
+export const BLOCK_FALLBACK_LABEL = "Bloqueado";
+
+export function blockLabel(reason: string | null | undefined): string {
+  return reason?.trim() || BLOCK_FALLBACK_LABEL;
+}

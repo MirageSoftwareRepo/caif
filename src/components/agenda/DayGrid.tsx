@@ -22,6 +22,7 @@ import {
   nowLineOffsetMin,
 } from "./gridLayout";
 import { useNow } from "@/lib/useNow";
+import { blockLabel } from "@/lib/time-blocks";
 
 const PX_PER_MIN = 1.3;
 const HOURS = Array.from(
@@ -382,7 +383,9 @@ function GridColumn({
             <div className="flex items-center justify-between gap-1">
               <div className="flex min-w-0 items-center gap-1">
                 <Ban className="h-3 w-3 shrink-0 text-muted-foreground" aria-hidden="true" />
-                <span className="truncate font-medium text-foreground">Bloqueado</span>
+                <span className="truncate font-medium text-foreground" title={blockLabel(block.reason)}>
+                  {blockLabel(block.reason)}
+                </span>
               </div>
               <div className="flex shrink-0 items-center gap-1.5">
                 {onAddPatientBlock && (

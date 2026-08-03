@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { blocksToOccupied, validateTimeBlock } from "@/lib/time-blocks";
+import { blockLabel, blocksToOccupied, validateTimeBlock } from "@/lib/time-blocks";
 import { generateSlots } from "@/lib/slots";
 import type { ScheduleBlock, OccupiedRange } from "@/lib/slots";
 
@@ -137,5 +137,31 @@ describe("blocksToOccupied dentro de generateSlots", () => {
     });
     const bloqueados = slots.filter((s) => !s.available);
     expect(bloqueados).toHaveLength(2);
+  });
+});
+
+describe("blockLabel", () => {
+  it("devuelve el texto del bloqueo cuando hay uno", () => {
+    expect(blockLabel("Juana Pérez")).toBe("Juana Pérez");
+  });
+
+  it("recorta espacios sobrantes", () => {
+    expect(blockLabel("  Juana Pérez  ")).toBe("Juana Pérez");
+  });
+
+  it("cae en 'Bloqueado' cuando el motivo es null", () => {
+    expect(blockLabel(null)).toBe("Bloqueado");
+  });
+
+  it("cae en 'Bloqueado' cuando el motivo es undefined", () => {
+    expect(blockLabel(undefined)).toBe("Bloqueado");
+  });
+
+  it("cae en 'Bloqueado' cuando el motivo es una cadena vacia", () => {
+    expect(blockLabel("")).toBe("Bloqueado");
+  });
+
+  it("cae en 'Bloqueado' cuando el motivo son solo espacios", () => {
+    expect(blockLabel("   ")).toBe("Bloqueado");
   });
 });

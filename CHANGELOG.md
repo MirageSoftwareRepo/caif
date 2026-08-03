@@ -6,6 +6,7 @@ All notable changes to the MediCare design system and UI are tracked in this fil
 
 ### Added
 
+- **Agenda — nombre en el bloqueo de horario**: el texto que el médico escribe al bloquear ahora se ve en la grilla del día, para identificar a un paciente que todavía no tiene cuenta. El campo pasa a llamarse "Paciente o motivo" e incluye el recordatorio de solicitar la creación del usuario. Sin migración: reutiliza `doctor_time_blocks.reason`, que ya existía. Ver `docs/instructivo-nombre-en-bloqueo.pdf`
 - Phase 1: Foundation — framer-motion dependency, design token update, shadow utilities
 
 ### Changed
