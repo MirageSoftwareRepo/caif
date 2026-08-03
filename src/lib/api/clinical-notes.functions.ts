@@ -14,7 +14,7 @@ import { sanitizeClinicalHtml, deriveBodyText } from "@/lib/clinical-html.server
 import { getDoctorSpecialtyIds } from "./db-helpers";
 import { getActiveGrantsForDoctor } from "./record-access.functions";
 import { logClinicalAccess } from "./clinical-audit";
-import { generateClinicalNotePDF } from "@/lib/pdf-generate";
+import { generateClinicalNotePDF } from "@/lib/pdf-generate.server";
 
 function toActor(doctorId: string, specialtyIds: string[]): ClinicalActor {
   return { kind: "doctor", doctorId, specialtyIds };

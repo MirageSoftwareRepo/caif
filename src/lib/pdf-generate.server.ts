@@ -3,6 +3,12 @@ import { getArgentinaTomorrow, type TurneroRow } from "./pdf-turnero";
 
 // Aislado en su propio módulo (P0.3): las queries del turnero (pdf-turnero.ts) NO deben
 // importar pdfkit, así el path del cron nocturno no falla si pdfkit no está disponible.
+//
+// Sufijo `.server` obligatorio: pdfkit es una lib de Node (usa Buffer, fs, streams).
+// clinical-notes.functions.ts importa este módulo y también se resuelve desde el cliente,
+// así que sin el sufijo pdfkit se filtra al bundle del navegador y /doctor revienta con
+// "ReferenceError: Buffer is not defined". Misma razón que storage.server.ts y
+// clinical-html.server.ts. No renombrar sin quitar antes la dependencia de pdfkit.
 
 function formatDate(date: Date): string {
   return date.toLocaleDateString("es-AR", {
