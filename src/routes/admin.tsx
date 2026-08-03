@@ -15,6 +15,7 @@ import {
   KeyRound,
   Smartphone,
   CalendarX,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,6 +58,8 @@ import {
 import { cancelAllPatientAppointments } from "@/lib/api/appointments.functions";
 import { GalleryTab } from "@/components/admin/GalleryTab";
 import { WhatsAppTab } from "@/components/admin/WhatsAppTab";
+import { DoctorRecordsDialog } from "@/components/admin/DoctorRecordsDialog";
+import { AdminAccessRequestsPanel } from "@/components/admin/AdminAccessRequestsPanel";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Administración · CAIF" }] }),
@@ -918,6 +921,7 @@ function DoctorsTab() {
   const queryClient = useQueryClient();
   const [editOpen, setEditOpen] = useState(false);
   const [editing, setEditing] = useState<Doctor | null>(null);
+  const [recordsTarget, setRecordsTarget] = useState<Doctor | null>(null);
 
   const { data: doctors } = useQuery({
     queryKey: ["admin-doctors"],
@@ -929,6 +933,9 @@ function DoctorsTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-doctors"] });
       toast.success("Médico eliminado");
+    },
+    onError: (e: Error) => {
+      toast.error(e.message || "Error al eliminar el médico");
     },
   });
 
@@ -1011,6 +1018,15 @@ function DoctorsTab() {
                     </Button>
                     <Button
                       size="sm"
+                      variant="outline"
+                      onClick={() => setRecordsTarget(d)}
+                      className="min-h-[44px] min-w-[44px]"
+                      title="Ver fichas de sus pacientes"
+                    >
+                      <FileText className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
                       variant="destructive"
                       onClick={() => remove.mutate(d.id)}
                       className="min-h-[44px] min-w-[44px]"
@@ -1084,6 +1100,15 @@ function DoctorsTab() {
                 </Button>
                 <Button
                   size="sm"
+                  variant="outline"
+                  onClick={() => setRecordsTarget(d)}
+                  className="min-h-[44px] min-w-[44px]"
+                  title="Ver fichas de sus pacientes"
+                >
+                  <FileText className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="sm"
                   variant="destructive"
                   onClick={() => remove.mutate(d.id)}
                   className="min-h-[44px] min-w-[44px]"
@@ -1096,6 +1121,15 @@ function DoctorsTab() {
         })}
       </div>
       <DoctorDialog open={editOpen} onOpenChange={setEditOpen} doctor={editing} />
+      {recordsTarget && (
+        <DoctorRecordsDialog
+          open={!!recordsTarget}
+          onOpenChange={(o) => !o && setRecordsTarget(null)}
+          doctorId={recordsTarget.id}
+          doctorName={`${recordsTarget.user?.firstName ?? ""} ${recordsTarget.user?.lastName ?? ""}`.trim()}
+        />
+      )}
+      <AdminAccessRequestsPanel />
     </div>
   );
 }
@@ -1117,11 +1151,16 @@ function DoctorDialog({
   const [insuranceInput, setInsuranceInput] = useState("");
   const [insuranceCompanies, setInsuranceCompanies] = useState<string[]>([]);
   const [isActive, setIsActive] = useState(doctor?.isActive ?? true);
+  const [successorDoctorId, setSuccessorDoctorId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   const { data: specialties } = useQuery({
     queryKey: ["specialties-all"],
     queryFn: () => getAllSpecialties(),
+  });
+  const { data: allDoctors } = useQuery({
+    queryKey: ["admin-doctors"],
+    queryFn: () => getAllDoctors(),
   });
 
   useEffect(() => {
@@ -1135,8 +1174,18 @@ function DoctorDialog({
       setSlotMinutes(doctor.slotMinutes ?? 30);
       setInsuranceCompanies(doctor.insuranceCompanies ?? []);
       setIsActive(doctor.isActive ?? true);
+      setSuccessorDoctorId(doctor.successorDoctorId ?? null);
     }
   }, [open, doctor]);
+
+  // Sucesor válido: comparte al menos una especialidad con el médico que se
+  // desactiva (D16). El servidor lo revalida igual; esto es solo para no
+  // ofrecer opciones que van a rebotar.
+  const eligibleSuccessors = (allDoctors ?? []).filter((d) => {
+    if (d.id === doctor?.id || !d.isActive) return false;
+    const theirSpecialties = d.specialties?.map((s) => s.specialtyId) ?? [];
+    return specialtyIds.some((s) => theirSpecialties.includes(s));
+  });
 
   const toggleSpecialty = (id: string) => {
     setSpecialtyIds((prev) => (prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]));
@@ -1164,6 +1213,7 @@ function DoctorDialog({
           slotMinutes,
           insuranceCompanies,
           isActive,
+          successorDoctorId: isActive ? null : successorDoctorId,
         },
       });
       queryClient.invalidateQueries({ queryKey: ["admin-doctors"] });
@@ -1266,6 +1316,27 @@ function DoctorDialog({
             />
             <Label htmlFor="docIsActive">Activo</Label>
           </div>
+          {!isActive && (
+            <div>
+              <Label>Sucesor (opcional)</Label>
+              <p className="mb-1.5 text-xs text-muted-foreground">
+                Los pedidos de acceso a sus notas se enrutan a este médico. Sin sucesor, quedan
+                para el admin.
+              </p>
+              <select
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                value={successorDoctorId ?? ""}
+                onChange={(e) => setSuccessorDoctorId(e.target.value || null)}
+              >
+                <option value="">Sin sucesor</option>
+                {eligibleSuccessors.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.user?.firstName} {d.user?.lastName}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>

@@ -47,12 +47,12 @@ CI (`.github/workflows/ci.yml`): `bun run lint` → `bunx tsc --noEmit` → `bun
 
 - `createServerFn` from `@tanstack/react-start` with `.inputValidator()` (NOT `.validator()`).
 - GET functions cannot use `.inputValidator()` — use POST.
-- All server function files live in `src/lib/api/`: `admin-doctors`, `admin-users`, `appointments`, `doctor-schedule`, `example`, `gallery`, `medical-records`, `profile`, `specialties` — plus `db-helpers.ts` (NOT a server fn, direct db queries). Importing `db-helpers.ts` from a route file leaks `postgres` into the client bundle — always call server fns from routes.
+- All server function files live in `src/lib/api/` as `*.functions.ts`: `admin-doctors`, `admin-users`, `appointments`, `doctor-schedule`, `example`, `gallery`, `medical-records`, `profile`, `specialties`, `time-blocks` — plus `db-helpers.ts` (NOT a server fn, direct db queries) and `_guards.ts` (`requireSession`/`requireRole`/`requireDoctor`, throws typed `AuthError`). Importing `db-helpers.ts` from a route file leaks `postgres` into the client bundle — always call server fns from routes.
 
 ## Database
 
 - Drizzle ORM with `postgres-js` driver. `src/db/index.ts` creates the `db` client. Config in `drizzle.config.ts` (schema: `src/db/schema.ts`, dialect: postgresql, migrations dir: `src/db/migrations/`).
-- Tables: `user`, `session`, `account`, `verification` (better-auth) + `patients`, `specialties`, `doctors`, `doctorSpecialties` (junction, unique `doctorId+specialtyId`), `doctorSchedules`, `appointments`, `galleryImages`, `medicalRecords`, `whatsappLog`, `notifications`.
+- Tables: `user`, `session`, `account`, `verification` (better-auth) + `patients`, `specialties`, `doctors`, `doctorSpecialties` (junction, unique `doctorId+specialtyId`), `doctorSchedules`, `doctorTimeBlocks`, `appointments`, `galleryImages`, `medicalRecords`, `whatsappLog`, `notifications`.
 
 ## Business Rules
 
@@ -74,6 +74,13 @@ CI (`.github/workflows/ci.yml`): `bun run lint` → `bunx tsc --noEmit` → `bun
 - **DB schema changes**: Always verify with `bun db:push` locally against a full copy before pushing. Avoid destructive migrations — prefer additive changes. The Render PostgreSQL plan has limited storage and no point-in-time recovery.
 - **Deploy window**: Only deploy between 21:00–08:00 ARG (the maintenance/softlock window). Outside those hours the system is serving patients — a broken deploy means downtime during active hours.
 
+## Planning Docs (`docs/`)
+
+The team is working through a numbered series of audit-derived plans (`docs/01-...` through `docs/09-...`), each self-contained, plus `docs/10-modulo-clinico.md` — a client-requested feature (clinical history by session, permissions, dictation) added after the audit series, with a 100%-additive schema; its Phase 0 touches `doctor.tsx`, which **07** also refactors, so coordinate that file if both are in flight. `docs/00-RELEVAMIENTO.md` is the source-of-truth architecture/findings audit and `docs/README.md` holds constraints that apply to **every** plan. Both are point-in-time snapshots — check recent commits/git log before trusting a specific finding, since plans get implemented over time. Two constraints from `docs/README.md` still apply regardless of which plan is active:
+
+- **Data freeze**: the clinic is mid-way through loading real doctor data into production. Do not write migrations or schema changes that could modify/delete existing rows. `bunx drizzle-kit push` runs on every deploy (`Dockerfile`) and auto-applies `schema.ts` changes to prod — only additive schema changes are safe during this phase; anything else needs a manual pre-migration dump and must not go through the automatic deploy push.
+- **Don't harden patient login.** Patients authenticate with unverified email + DNI by design (the audience skews elderly/non-technical); this is intentional, not a bug — do not add email verification, 2FA, or extra login friction for the `paciente` role.
+
 ## Seed Defaults
 
 - Admin: `admin@medicare.com` / `AdminMediCare2026!` (`mustChangePassword: true`)
@@ -90,7 +97,7 @@ CI (`.github/workflows/ci.yml`): `bun run lint` → `bunx tsc --noEmit` → `bun
 - `components.json` has a `@react-bits` registry configured.
 - Admin gallery tab: separate component at `src/components/admin/GalleryTab.tsx`.
 - Path alias: `@/*` → `src/*` (tsconfig, vitest, vite config).
-- Tests live either in `src/test/` (`dataUrl`, `gridLayout`, `phone`, `slots`, `storage`) or co-located next to the module under test (e.g. `src/lib/appointment-state.test.ts`); both are picked up by `vitest run` (jsdom env, `src/test/setup.ts`). CI's Unit Tests step is a blocking gate — see Commands above.
+- Tests live either in `src/test/` (`dataUrl`, `gridLayout`, `phone`, `slots`, `storage`, `time-blocks`) or co-located next to the module under test (e.g. `src/lib/appointment-state.test.ts`, `src/lib/appointment-state-weekday.test.ts`); both are picked up by `vitest run` (jsdom env, `src/test/setup.ts`). CI's Unit Tests step is a blocking gate — see Commands above.
 
 ## Mobile Responsive Conventions
 

@@ -1,7 +1,16 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Calendar, Clock, Plus, Stethoscope, User, Building2, MessageCircle } from "lucide-react";
+import {
+  Calendar,
+  Clock,
+  Plus,
+  Stethoscope,
+  User,
+  Building2,
+  MessageCircle,
+  CalendarDays,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import { isSoftlocked } from "@/lib/softlock";
@@ -24,6 +33,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import {
   getMyAppointments,
@@ -35,6 +45,7 @@ import { getActiveSpecialties } from "@/lib/api/specialties.functions";
 import { getDoctorsBySpecialty } from "@/lib/api/admin-doctors.functions";
 import { getDoctorSchedule } from "@/lib/api/doctor-schedule.functions";
 import { ProfileEditor } from "@/components/ProfileEditor";
+import { ClinicalHistoryTab } from "@/components/patient/ClinicalHistoryTab";
 import { generateSlots } from "@/lib/slots";
 import { blocksToOccupied } from "@/lib/time-blocks";
 import { formatArPhone, toWaLink } from "@/lib/phone";
@@ -90,52 +101,74 @@ function Dashboard() {
 
   return (
     <DashboardLayout title="Mi panel" description="Gestioná tus turnos y tu información">
-      <div className="mb-8 flex items-end justify-between">
-        <div />
-        <BookAppointmentDialog onBooked={refetch} />
-      </div>
-
-      <section className="grid gap-6 md:grid-cols-3">
-        <StatCard icon={Calendar} label="Próximos turnos" value={upcoming.length} />
-        <StatCard icon={Clock} label="Historial" value={history.length} />
-        <StatCard icon={User} label="Mi rol" value={roles[0] ?? "paciente"} />
-      </section>
-
-      <section className="mt-10">
-        <h2 className="font-display text-2xl text-foreground">Próximos turnos</h2>
-        <div className="mt-4 space-y-3">
-          {upcoming.length === 0 && (
-            <div className="rounded-2xl border border-dashed border-border bg-background p-10 text-center text-muted-foreground">
-              No tenés turnos próximos. <span className="text-primary">¡Reservá uno!</span>
-            </div>
-          )}
-          {upcoming.map((a) => (
-            <ApptRow key={a.id} appt={a} onCancel={() => cancelAppt(a.id)} />
-          ))}
-        </div>
-      </section>
-
-      {history.length > 0 && (
-        <section className="mt-10">
-          <div className="flex items-center justify-between">
-            <h2 className="font-display text-2xl text-foreground">Historial</h2>
-            <Button variant="outline" size="sm" onClick={() => setShowHistory(!showHistory)}>
-              {showHistory ? "Ocultar historial" : `Mostrar historial (${history.length})`}
-            </Button>
+      <Tabs defaultValue="turnos">
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden -mx-4 px-4 sm:mx-0 sm:px-0">
+            <TabsList>
+              <TabsTrigger value="turnos" className="gap-1 sm:gap-2">
+                <CalendarDays className="h-4 w-4 shrink-0" />{" "}
+                <span className="hidden sm:inline">Mis turnos</span>
+              </TabsTrigger>
+              <TabsTrigger value="historia-clinica" className="gap-1 sm:gap-2">
+                <Stethoscope className="h-4 w-4 shrink-0" />{" "}
+                <span className="hidden sm:inline">Mi historia clínica</span>
+              </TabsTrigger>
+              <TabsTrigger value="perfil" className="gap-1 sm:gap-2">
+                <User className="h-4 w-4 shrink-0" /> <span className="hidden sm:inline">Mi perfil</span>
+              </TabsTrigger>
+            </TabsList>
           </div>
-          {showHistory && (
+          <BookAppointmentDialog onBooked={refetch} />
+        </div>
+
+        <TabsContent value="turnos">
+          <section className="grid gap-6 md:grid-cols-3">
+            <StatCard icon={Calendar} label="Próximos turnos" value={upcoming.length} />
+            <StatCard icon={Clock} label="Historial" value={history.length} />
+            <StatCard icon={User} label="Mi rol" value={roles[0] ?? "paciente"} />
+          </section>
+
+          <section className="mt-10">
+            <h2 className="font-display text-2xl text-foreground">Próximos turnos</h2>
             <div className="mt-4 space-y-3">
-              {history.map((a) => (
-                <ApptRow key={a.id} appt={a} />
+              {upcoming.length === 0 && (
+                <div className="rounded-2xl border border-dashed border-border bg-background p-10 text-center text-muted-foreground">
+                  No tenés turnos próximos. <span className="text-primary">¡Reservá uno!</span>
+                </div>
+              )}
+              {upcoming.map((a) => (
+                <ApptRow key={a.id} appt={a} onCancel={() => cancelAppt(a.id)} />
               ))}
             </div>
-          )}
-        </section>
-      )}
+          </section>
 
-      <section className="mt-10">
-        <ProfileEditor />
-      </section>
+          {history.length > 0 && (
+            <section className="mt-10">
+              <div className="flex items-center justify-between">
+                <h2 className="font-display text-2xl text-foreground">Historial</h2>
+                <Button variant="outline" size="sm" onClick={() => setShowHistory(!showHistory)}>
+                  {showHistory ? "Ocultar historial" : `Mostrar historial (${history.length})`}
+                </Button>
+              </div>
+              {showHistory && (
+                <div className="mt-4 space-y-3">
+                  {history.map((a) => (
+                    <ApptRow key={a.id} appt={a} />
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
+        </TabsContent>
+
+        <TabsContent value="historia-clinica">
+          <ClinicalHistoryTab />
+        </TabsContent>
+
+        <TabsContent value="perfil">
+          <ProfileEditor />
+        </TabsContent>
+      </Tabs>
     </DashboardLayout>
   );
 }

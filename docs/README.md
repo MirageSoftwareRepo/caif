@@ -16,17 +16,18 @@ Pensada para trabajar **cada plan en un chat separado y enfocado**.
 
 ## Índice
 
-| Plan | Título | Tipo | Urgencia |
-|------|--------|------|----------|
-| [01](01-autorizacion-server-side.md) | Autorización server-side + hardening | Seguridad | 🔴 Alta |
-| [02](02-whatsapp-produccion-y-robustez.md) | WhatsApp: reparar producción + robustez | Bug prod | 🔴 Alta |
-| [03](03-integridad-ciclo-de-vida-turno.md) | Integridad y ciclo de vida del turno | Datos/lógica | 🔴 Alta |
-| [04](04-correcciones-puntuales.md) | Correcciones puntuales | Varios | 🟡 Media |
-| [05](05-modo-whatsapp-directo-medico.md) | Feature: modo WhatsApp directo del médico | Feature | 🟡 Media |
-| [06](06-modulo-slots-y-tests.md) | Módulo único de slots + tests + CI | Refactor base | 🟡 Media |
-| [07](07-refactor-componentes-y-tipos.md) | Refactor de componentes, tipos y errores | Refactor | 🟢 Baja |
-| [08](08-almacenamiento-archivos.md) | Archivos fuera de Postgres | Storage | 🟡 Media |
-| [09](09-rediseno-frontend-ux.md) | Rediseño frontend / UX | Rediseño | 🟢 Baja |
+| Plan                                       | Título                                                    | Tipo          | Urgencia |
+| ------------------------------------------ | --------------------------------------------------------- | ------------- | -------- |
+| [01](01-autorizacion-server-side.md)       | Autorización server-side + hardening                      | Seguridad     | 🔴 Alta  |
+| [02](02-whatsapp-produccion-y-robustez.md) | WhatsApp: reparar producción + robustez                   | Bug prod      | 🔴 Alta  |
+| [03](03-integridad-ciclo-de-vida-turno.md) | Integridad y ciclo de vida del turno                      | Datos/lógica  | 🔴 Alta  |
+| [04](04-correcciones-puntuales.md)         | Correcciones puntuales                                    | Varios        | 🟡 Media |
+| [05](05-modo-whatsapp-directo-medico.md)   | Feature: modo WhatsApp directo del médico                 | Feature       | 🟡 Media |
+| [06](06-modulo-slots-y-tests.md)           | Módulo único de slots + tests + CI                        | Refactor base | 🟡 Media |
+| [07](07-refactor-componentes-y-tipos.md)   | Refactor de componentes, tipos y errores                  | Refactor      | 🟢 Baja  |
+| [08](08-almacenamiento-archivos.md)        | Archivos fuera de Postgres                                | Storage       | 🟡 Media |
+| [09](09-rediseno-frontend-ux.md)           | Rediseño frontend / UX                                    | Rediseño      | 🟢 Baja  |
+| [10](10-modulo-clinico.md)                 | Módulo clínico: historia por sesiones, permisos y dictado | Feature       | 🟡 Media |
 
 ## Orden recomendado
 
@@ -36,6 +37,10 @@ Pensada para trabajar **cada plan en un chat separado y enfocado**.
 ```
 
 Dependencias blandas: 07 rinde más tras 06; 09 rinde más tras 03/06/07. Todo lo demás es independiente.
+
+El **10** es una feature nueva pedida por el cliente, posterior a esta serie de auditoría. Su schema
+es 100 % aditivo, así que puede correr en paralelo con lo pendiente. Su Fase 0 adelanta el desarme
+de `doctor.tsx` que también toca el **07**; si se hacen los dos, coordinar ese archivo.
 
 ## Dependencias / solapamientos a tener en cuenta
 

@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { user, patients, doctors, doctorSchedules } from "@/db/schema";
+import { user, patients, doctors, doctorSchedules, doctorSpecialties } from "@/db/schema";
 import { eq, like, or, and } from "drizzle-orm";
 
 export async function getUserById(id: string) {
@@ -56,4 +56,14 @@ export async function getDoctorSchedules(doctorId: string) {
   return db.query.doctorSchedules.findMany({
     where: eq(doctorSchedules.doctorId, doctorId),
   });
+}
+
+// Especialidades del doctor vía la tabla-junction (varias por doctor). Usado
+// por el módulo clínico para el aislamiento por especialidad (Plan 10, D2).
+export async function getDoctorSpecialtyIds(doctorId: string): Promise<string[]> {
+  const rows = await db
+    .select({ specialtyId: doctorSpecialties.specialtyId })
+    .from(doctorSpecialties)
+    .where(eq(doctorSpecialties.doctorId, doctorId));
+  return rows.map((r) => r.specialtyId);
 }

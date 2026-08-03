@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { CalendarDays, Settings2, Building2, FileText, User } from "lucide-react";
+import { CalendarDays, Settings2, Building2, FileText, User, Stethoscope } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useAuth } from "@/lib/auth";
@@ -11,6 +11,7 @@ import { ObrasSocialesTab } from "@/components/doctor/ObrasSocialesTab";
 import { ArchivosTab } from "@/components/doctor/ArchivosTab";
 import { DescripcionTab } from "@/components/doctor/DescripcionTab";
 import { PerfilTab } from "@/components/doctor/PerfilTab";
+import { HistoriaClinicaTab } from "@/components/doctor/clinical/HistoriaClinicaTab";
 
 export const Route = createFileRoute("/doctor")({
   head: () => ({ meta: [{ title: "Mi Agenda · CAIF" }] }),
@@ -66,6 +67,10 @@ function DoctorPanel() {
               <Building2 className="h-4 w-4 shrink-0" />{" "}
               <span className="hidden sm:inline">Obras Sociales</span>
             </TabsTrigger>
+            <TabsTrigger value="historia-clinica" className="gap-1 sm:gap-2">
+              <Stethoscope className="h-4 w-4 shrink-0" />{" "}
+              <span className="hidden sm:inline">Historia clínica</span>
+            </TabsTrigger>
             <TabsTrigger value="fichas" className="gap-1 sm:gap-2">
               <FileText className="h-4 w-4 shrink-0" />{" "}
               <span className="hidden sm:inline">Archivos</span>
@@ -87,6 +92,9 @@ function DoctorPanel() {
         </TabsContent>
         <TabsContent value="obras-sociales">
           <ObrasSocialesTab userId={user.id} />
+        </TabsContent>
+        <TabsContent value="historia-clinica">
+          <HistoriaClinicaTab userId={user.id} />
         </TabsContent>
         <TabsContent value="fichas">
           <ArchivosTab userId={user.id} />

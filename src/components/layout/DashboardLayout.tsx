@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/lib/auth";
 import { SoftlockBanner } from "@/components/SoftlockBanner";
+import { NotificationBell } from "@/components/layout/NotificationBell";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -43,6 +44,7 @@ export function DashboardLayout({ children, title, description }: DashboardLayou
             {user && (
               <span className="hidden text-sm text-muted-foreground sm:inline">{user.email}</span>
             )}
+            {user && <NotificationBell />}
             <Button variant="ghost" size="sm" asChild>
               <Link to="/">
                 <Home className="mr-2 h-4 w-4" /> Volver a Inicio
