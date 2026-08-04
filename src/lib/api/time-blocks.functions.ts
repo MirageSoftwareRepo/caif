@@ -12,7 +12,7 @@ import {
 import { eq, and, gte, lt, ne } from "drizzle-orm";
 import { requireDoctor, requireSession, AuthError } from "./_guards";
 import { validateTimeBlock, BLOCK_ERROR_MESSAGES } from "@/lib/time-blocks";
-import { hashPassword } from "@/lib/password";
+import { hashPassword } from "@/lib/password.server";
 
 function dayBounds(date: string) {
   const [year, month, day] = date.split("-").map(Number);

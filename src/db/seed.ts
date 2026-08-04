@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db } from "./index";
 import { user, account, specialties } from "./schema";
-import { hashPassword, getAdminDefaultPassword } from "../lib/password";
+import { hashPassword, getAdminDefaultPassword } from "../lib/password.server";
 
 async function seed() {
   console.log("Seeding specialties...");
