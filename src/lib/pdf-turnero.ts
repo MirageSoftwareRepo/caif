@@ -1,4 +1,4 @@
-import { db } from "@/db";
+import { db } from "@/db/index.server";
 import { appointments, doctors, user, specialties } from "@/db/schema";
 import { eq, and, gte, lt, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";

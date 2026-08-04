@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { db } from "@/db";
+import { db } from "@/db/index.server";
 import { appointments, doctors, doctorSchedules, doctorTimeBlocks } from "@/db/schema";
 import { eq, and, gte, lt, desc, ne } from "drizzle-orm";
 import { throwIfSoftlocked } from "@/lib/softlock";

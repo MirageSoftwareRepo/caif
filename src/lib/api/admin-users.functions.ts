@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { hashPassword } from "@/lib/password";
 import { sendWelcomeEmail } from "@/lib/email";
-import { db } from "@/db";
+import { db } from "@/db/index.server";
 import { user, account, patients, doctors, doctorSpecialties, appointments } from "@/db/schema";
 import { eq, and, or, ilike } from "drizzle-orm";
 import { getUserByEmail, getAllUsers } from "./db-helpers";

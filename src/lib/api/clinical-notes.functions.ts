@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { db } from "@/db";
+import { db } from "@/db/index.server";
 import { clinicalNotes, clinicalNoteAddenda, appointments, doctors, user, patients } from "@/db/schema";
 import { eq, and, inArray, desc, or, ilike } from "drizzle-orm";
 import { requireDoctor, requireSession, AuthError } from "./_guards";

@@ -91,6 +91,7 @@ CI (`.github/workflows/ci.yml`): `bun run lint` → `bunx tsc --noEmit` → `bun
 - `components.json` has `@react-bits` registry configured.
 - Admin gallery tab: separate component at `src/components/admin/GalleryTab.tsx`.
 - Path alias: `@/*` → `src/*` (tsconfig, vitest, vite config).
+- `vite.config.ts` has a `nodeOnlyPackages` list for `optimizeDeps.exclude` + `rollupOptions.external`. If a new Node-only package causes "Buffer is not defined" in the browser, add it there. `drizzle-orm/postgres-js` must stay listed — it imports `postgres` which uses `Buffer` in `bytes.js`.
 - Test suite is currently empty — no `*.test.ts` files exist. `bun test` passes vacuously. Tests live in `src/test/` (vitest + jsdom + `@testing-library`).
 
 ## Mobile Responsive Conventions

@@ -1,4 +1,4 @@
-import { db } from "@/db";
+import { getDb } from "@/lib/server-imports";
 import { clinicalAccessLog } from "@/db/schema";
 
 // Auditoría append-only del módulo clínico (Plan 10, Fase 3). Nunca se hace
@@ -25,6 +25,7 @@ export async function logClinicalAccess(params: {
   viaRequestId?: string;
   reason?: string;
 }) {
+  const db = await getDb();
   await db.insert(clinicalAccessLog).values({
     actorUserId: params.actorUserId,
     patientId: params.patientId ?? null,

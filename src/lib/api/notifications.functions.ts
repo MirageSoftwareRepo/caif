@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { db } from "@/db";
+import { getDb } from "@/lib/server-imports";
 import { notifications } from "@/db/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { requireSession } from "./_guards";
@@ -17,6 +17,7 @@ export async function createNotification(params: {
   appointmentId?: string;
   accessRequestId?: string;
 }) {
+  const db = await getDb();
   await db.insert(notifications).values({
     userId: params.userId,
     title: params.title,
@@ -30,6 +31,7 @@ export async function createNotification(params: {
 export const listMyNotifications = createServerFn({ method: "POST" })
   .inputValidator(z.object({ limit: z.number().int().min(1).max(50).default(10) }))
   .handler(async ({ data }) => {
+    const db = await getDb();
     const session = await requireSession();
     return db.query.notifications.findMany({
       where: eq(notifications.userId, session.user.id),
@@ -39,6 +41,7 @@ export const listMyNotifications = createServerFn({ method: "POST" })
   });
 
 export const getUnreadNotificationCount = createServerFn({ method: "POST" }).handler(async () => {
+  const db = await getDb();
   const session = await requireSession();
   const [{ count }] = await db
     .select({ count: sql<number>`count(*)::int` })
@@ -50,6 +53,7 @@ export const getUnreadNotificationCount = createServerFn({ method: "POST" }).han
 export const markNotificationRead = createServerFn({ method: "POST" })
   .inputValidator(z.object({ notificationId: z.string().uuid() }))
   .handler(async ({ data }) => {
+    const db = await getDb();
     const session = await requireSession();
     await db
       .update(notifications)
@@ -61,6 +65,7 @@ export const markNotificationRead = createServerFn({ method: "POST" })
   });
 
 export const markAllNotificationsRead = createServerFn({ method: "POST" }).handler(async () => {
+  const db = await getDb();
   const session = await requireSession();
   await db
     .update(notifications)

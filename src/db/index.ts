@@ -1,6 +1,4 @@
-import { drizzle } from "drizzle-orm/postgres-js";
-import postgres from "postgres";
-import * as schema from "./schema";
-
-const client = postgres(process.env.DATABASE_URL!);
-export const db = drizzle(client, { schema });
+// CLI-only entry (bun db:seed, migrate-file-storage.ts). Client/server code
+// must import `@/db/index.server` instead — importing this file from the
+// client bundle would leak `postgres` into the browser.
+export { db } from "./index.server";

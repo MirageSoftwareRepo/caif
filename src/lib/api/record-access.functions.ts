@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { db } from "@/db";
+import { getDb } from "@/lib/server-imports";
 import { recordAccessRequests, doctors, user } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { requireDoctor, AuthError } from "./_guards";
@@ -14,6 +14,7 @@ const GRANT_DAYS = 30; // D17
 // (misma especialidad, D16), el pedido se enruta a él; si no, queda para el
 // admin (implementado en admin-doctors.functions.ts, §4bis).
 async function resolveEffectiveApproverDoctorId(targetDoctorId: string): Promise<string | null> {
+  const db = await getDb();
   const target = await db.query.doctors.findFirst({
     where: eq(doctors.id, targetDoctorId),
     columns: { isActive: true, successorDoctorId: true },
@@ -27,6 +28,7 @@ async function notifyDoctor(
   doctorId: string,
   payload: { title: string; message: string; accessRequestId?: string },
 ) {
+  const db = await getDb();
   const doctor = await db.query.doctors.findFirst({
     where: eq(doctors.id, doctorId),
     columns: { userId: true },
@@ -46,6 +48,7 @@ export const requestRecordAccess = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const { session, doctorId } = await requireDoctor();
+    const db = await getDb();
     if (data.targetDoctorId === doctorId) {
       throw new Error("No podés pedirte acceso a vos mismo");
     }
@@ -90,6 +93,7 @@ export const requestRecordAccess = createServerFn({ method: "POST" })
 // destino necesita ver los que ya aprobó para poder revocarlos (D4).
 export const listIncomingAccessRequests = createServerFn({ method: "POST" }).handler(async () => {
   const { doctorId } = await requireDoctor();
+  const db = await getDb();
   const rows = await db.query.recordAccessRequests.findMany({
     where: eq(recordAccessRequests.targetDoctorId, doctorId),
     with: {
@@ -104,6 +108,7 @@ export const listIncomingAccessRequests = createServerFn({ method: "POST" }).han
 
 export const listOutgoingAccessRequests = createServerFn({ method: "POST" }).handler(async () => {
   const { doctorId } = await requireDoctor();
+  const db = await getDb();
   const rows = await db.query.recordAccessRequests.findMany({
     where: eq(recordAccessRequests.requesterDoctorId, doctorId),
     with: {
@@ -118,6 +123,7 @@ export const listOutgoingAccessRequests = createServerFn({ method: "POST" }).han
 
 async function requireApproverAccess(requestId: string) {
   const { session, doctorId } = await requireDoctor();
+  const db = await getDb();
   const request = await db.query.recordAccessRequests.findFirst({
     where: eq(recordAccessRequests.id, requestId),
   });
@@ -134,6 +140,7 @@ export const approveAccessRequest = createServerFn({ method: "POST" })
   .inputValidator(z.object({ requestId: z.string().uuid() }))
   .handler(async ({ data }) => {
     const { session, request } = await requireApproverAccess(data.requestId);
+    const db = await getDb();
 
     const expiresAt = new Date(Date.now() + GRANT_DAYS * 24 * 60 * 60 * 1000);
     const [updated] = await db
@@ -166,6 +173,7 @@ export const rejectAccessRequest = createServerFn({ method: "POST" })
   .inputValidator(z.object({ requestId: z.string().uuid() }))
   .handler(async ({ data }) => {
     const { session, request } = await requireApproverAccess(data.requestId);
+    const db = await getDb();
 
     const [updated] = await db
       .update(recordAccessRequests)
@@ -195,6 +203,7 @@ export const revokeAccessRequest = createServerFn({ method: "POST" })
   .inputValidator(z.object({ requestId: z.string().uuid() }))
   .handler(async ({ data }) => {
     const { session, doctorId } = await requireDoctor();
+    const db = await getDb();
     const request = await db.query.recordAccessRequests.findFirst({
       where: eq(recordAccessRequests.id, data.requestId),
     });
@@ -231,6 +240,7 @@ export const getOtherSpecialtiesForPatient = createServerFn({ method: "POST" })
   .inputValidator(z.object({ patientId: z.string().min(1) }))
   .handler(async ({ data }) => {
     const { doctorId } = await requireDoctor();
+    const db = await getDb();
     const myRows = await db.query.doctors.findFirst({
       where: eq(doctors.id, doctorId),
       with: { specialties: true },
@@ -262,6 +272,7 @@ export const getOtherSpecialtiesForPatient = createServerFn({ method: "POST" })
 // predicado puro (clinical-permissions.ts). No filtra por fecha acá: el
 // predicado evalúa expiresAt contra `now` en el momento de leer.
 export async function getActiveGrantsForDoctor(doctorId: string): Promise<Grant[]> {
+  const db = await getDb();
   const rows = await db
     .select({
       targetDoctorId: recordAccessRequests.targetDoctorId,

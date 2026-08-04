@@ -1,6 +1,4 @@
-import { getRequest } from "@tanstack/react-start/server";
-import { auth } from "@/lib/auth.server";
-import { db } from "@/db";
+import { getAuth, getDb, getServerRequest } from "@/lib/server-imports";
 import { doctors } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import type { AppRole } from "@/lib/auth.tsx";
@@ -15,7 +13,8 @@ export class AuthError extends Error {
 }
 
 export async function requireSession() {
-  const request = getRequest();
+  const request = await getServerRequest();
+  const auth = await getAuth();
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session?.user) throw new AuthError("UNAUTHENTICATED", "No autenticado");
   // Defensa en profundidad: si la cuenta se desactivó después de emitida la sesión
@@ -36,6 +35,7 @@ export async function requireRole(...roles: AppRole[]) {
 
 export async function requireDoctor() {
   const session = await requireRole("medico");
+  const db = await getDb();
   let doctor = await db.query.doctors.findFirst({ where: eq(doctors.userId, session.user.id) });
   if (!doctor) {
     const [created] = await db.insert(doctors).values({ userId: session.user.id }).returning();

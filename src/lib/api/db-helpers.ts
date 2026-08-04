@@ -1,4 +1,4 @@
-import { db } from "@/db";
+import { db } from "@/db/index.server";
 import { user, patients, doctors, doctorSchedules, doctorSpecialties } from "@/db/schema";
 import { eq, like, or, and } from "drizzle-orm";
 
