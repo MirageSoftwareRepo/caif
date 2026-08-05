@@ -251,7 +251,7 @@ function BookAppointmentDialog({ onBooked }: { onBooked: () => void }) {
   const [slot, setSlot] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const CLINIC_ADDRESS = "Av. Siempre Viva 1234, Piso 2 — CABA, Argentina";
+  const CLINIC_ADDRESS = "Laprida 154, Cinco Saltos";
 
   const { data: specialties } = useQuery({
     queryKey: ["specialties"],
