@@ -1,3 +1,5 @@
+import { WHATSAPP_BOT_ENABLED } from "./features";
+
 let scheduled = false;
 
 const INIT_CRON = "45 20 * * *"; // 20:45 ARG — warm up WhatsApp client
@@ -68,57 +70,65 @@ export function startDailyScheduler() {
 
   import("node-cron")
     .then(({ default: cron }) => {
-      // ── Warm up WhatsApp at 20:45 ──
-      cron.schedule(
-        INIT_CRON,
-        async () => {
-          console.log("[scheduler] Iniciando cliente WhatsApp para el turnero...");
-          const { startWhatsAppClient } = await import("./whatsapp");
-          await startWhatsAppClient().catch((err: unknown) => {
-            console.error("[scheduler] Error iniciando WhatsApp:", err);
-          });
-        },
-        { timezone: "America/Argentina/Buenos_Aires" },
-      );
+      if (WHATSAPP_BOT_ENABLED) {
+        // ── Warm up WhatsApp at 20:45 ──
+        cron.schedule(
+          INIT_CRON,
+          async () => {
+            console.log("[scheduler] Iniciando cliente WhatsApp para el turnero...");
+            const { startWhatsAppClient } = await import("./whatsapp");
+            await startWhatsAppClient().catch((err: unknown) => {
+              console.error("[scheduler] Error iniciando WhatsApp:", err);
+            });
+          },
+          { timezone: "America/Argentina/Buenos_Aires" },
+        );
 
-      // ── Send per-doctor messages at 21:00 ──
-      cron.schedule(
-        SEND_CRON,
-        async () => {
-          console.log("[scheduler] Enviando turneros por WhatsApp...");
-          try {
-            await sendTurneros({ isRetry: false });
-          } catch (err) {
-            console.error("[scheduler] Error durante el envío:", err);
-          }
-        },
-        { timezone: "America/Argentina/Buenos_Aires" },
-      );
+        // ── Send per-doctor messages at 21:00 ──
+        cron.schedule(
+          SEND_CRON,
+          async () => {
+            console.log("[scheduler] Enviando turneros por WhatsApp...");
+            try {
+              await sendTurneros({ isRetry: false });
+            } catch (err) {
+              console.error("[scheduler] Error durante el envío:", err);
+            }
+          },
+          { timezone: "America/Argentina/Buenos_Aires" },
+        );
 
-      // ── Retry failed/missing at 21:15 (M10) ──
-      cron.schedule(
-        RETRY_CRON,
-        async () => {
-          console.log("[scheduler] Reintentando turneros fallidos/faltantes...");
-          try {
-            await sendTurneros({ isRetry: true });
-          } catch (err) {
-            console.error("[scheduler] Error durante el reintento:", err);
-          }
-        },
-        { timezone: "America/Argentina/Buenos_Aires" },
-      );
+        // ── Retry failed/missing at 21:15 (M10) ──
+        cron.schedule(
+          RETRY_CRON,
+          async () => {
+            console.log("[scheduler] Reintentando turneros fallidos/faltantes...");
+            try {
+              await sendTurneros({ isRetry: true });
+            } catch (err) {
+              console.error("[scheduler] Error durante el reintento:", err);
+            }
+          },
+          { timezone: "America/Argentina/Buenos_Aires" },
+        );
 
-      // ── Destroy WhatsApp client at 21:20 to free memory ──
-      cron.schedule(
-        DESTROY_CRON,
-        async () => {
-          console.log("[scheduler] Destruyendo cliente WhatsApp para liberar memoria...");
-          const { destroyWhatsAppClient } = await import("./whatsapp");
-          await destroyWhatsAppClient();
-        },
-        { timezone: "America/Argentina/Buenos_Aires" },
-      );
+        // ── Destroy WhatsApp client at 21:20 to free memory ──
+        cron.schedule(
+          DESTROY_CRON,
+          async () => {
+            console.log("[scheduler] Destruyendo cliente WhatsApp para liberar memoria...");
+            const { destroyWhatsAppClient } = await import("./whatsapp");
+            await destroyWhatsAppClient();
+          },
+          { timezone: "America/Argentina/Buenos_Aires" },
+        );
+
+        console.log(
+          "[scheduler] Programado: 20:45 init → 21:00 envío → 21:15 reintento → 21:20 destroy (ARG)",
+        );
+      } else {
+        console.log("[scheduler] Bot de WhatsApp desactivado (WHATSAPP_BOT_ENABLED=false)");
+      }
 
       // ── Memory health check every hour ──
       cron.schedule(
@@ -132,9 +142,6 @@ export function startDailyScheduler() {
         { timezone: "America/Argentina/Buenos_Aires" },
       );
 
-      console.log(
-        "[scheduler] Programado: 20:45 init → 21:00 envío → 21:15 reintento → 21:20 destroy (ARG)",
-      );
       console.log("[scheduler] Memory log cada hora");
     })
     .catch((err) => {

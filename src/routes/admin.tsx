@@ -58,6 +58,7 @@ import {
 import { cancelAllPatientAppointments } from "@/lib/api/appointments.functions";
 import { GalleryTab } from "@/components/admin/GalleryTab";
 import { WhatsAppTab } from "@/components/admin/WhatsAppTab";
+import { WHATSAPP_BOT_ENABLED } from "@/lib/features";
 import { DoctorRecordsDialog } from "@/components/admin/DoctorRecordsDialog";
 import { AdminAccessRequestsPanel } from "@/components/admin/AdminAccessRequestsPanel";
 
@@ -119,10 +120,12 @@ function AdminPanel() {
               <ImageIcon className="h-4 w-4 shrink-0" />{" "}
               <span className="hidden sm:inline">Galería</span>
             </TabsTrigger>
-            <TabsTrigger value="whatsapp" className="gap-1 sm:gap-2">
-              <Smartphone className="h-4 w-4 shrink-0" />{" "}
-              <span className="hidden sm:inline">WhatsApp</span>
-            </TabsTrigger>
+            {WHATSAPP_BOT_ENABLED && (
+              <TabsTrigger value="whatsapp" className="gap-1 sm:gap-2">
+                <Smartphone className="h-4 w-4 shrink-0" />{" "}
+                <span className="hidden sm:inline">WhatsApp</span>
+              </TabsTrigger>
+            )}
           </TabsList>
         </div>
 
@@ -138,9 +141,11 @@ function AdminPanel() {
         <TabsContent value="galeria">
           <GalleryTab />
         </TabsContent>
-        <TabsContent value="whatsapp">
-          <WhatsAppTab />
-        </TabsContent>
+        {WHATSAPP_BOT_ENABLED && (
+          <TabsContent value="whatsapp">
+            <WhatsAppTab />
+          </TabsContent>
+        )}
       </Tabs>
     </DashboardLayout>
   );

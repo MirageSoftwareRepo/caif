@@ -22,10 +22,11 @@ bun db:push           # drizzle-kit push (CREATE/ALTER tables)
 bun db:generate       # drizzle-kit generate (migrations to src/db/migrations/)
 bun db:migrate        # drizzle-kit migrate
 bun db:seed           # bun run src/db/seed.ts (8 specialties + admin user)
-bunx drizzle-kit studio  # Drizzle Studio GUI (no npm script for this)
+bun db:studio         # Drizzle Studio GUI
+bunx vitest run src/lib/clinical-permissions.test.ts   # single test file
 ```
 
-CI (`.github/workflows/ci.yml`): `bun run lint` → `bunx tsc --noEmit` → `bun run test` → `bun run build`, against a real `postgres:16` service container. Lint, Type Check, and Build are `continue-on-error: true` (non-blocking); **Unit Tests is not** — a failing test fails the CI job. There is no `typecheck` npm script — CI runs `tsc` directly. There is currently no way to run a single test file via an npm script; use `bunx vitest run <path>` directly.
+CI (`.github/workflows/ci.yml`): `bun run lint` → `bunx tsc --noEmit` → `bun run test` → `bun run build`, against a real `postgres:16` service container. Lint, Type Check, and Build are `continue-on-error: true` (non-blocking); **Unit Tests is not** — a failing test fails the CI job. There is no `typecheck` npm script — CI runs `tsc` directly. `run-tests.sh` / `run-tests.bat` run the same four steps locally and write results to `test/`.
 
 ## Architecture
 
@@ -47,18 +48,21 @@ CI (`.github/workflows/ci.yml`): `bun run lint` → `bunx tsc --noEmit` → `bun
 
 - `createServerFn` from `@tanstack/react-start` with `.inputValidator()` (NOT `.validator()`).
 - GET functions cannot use `.inputValidator()` — use POST.
-- All server function files live in `src/lib/api/` as `*.functions.ts`: `admin-doctors`, `admin-users`, `appointments`, `doctor-schedule`, `example`, `gallery`, `medical-records`, `profile`, `specialties`, `time-blocks` — plus `db-helpers.ts` (NOT a server fn, direct db queries) and `_guards.ts` (`requireSession`/`requireRole`/`requireDoctor`, throws typed `AuthError`). Importing `db-helpers.ts` from a route file leaks `postgres` into the client bundle — always call server fns from routes.
+- All server function files live in `src/lib/api/` as `*.functions.ts` (one per domain: appointments, doctor-schedule, time-blocks, admin-*, clinical-notes, record-access, notifications, …). Non-server-fn helpers there: `db-helpers.ts` (direct db queries), `_guards.ts` (`requireSession`/`requireRole`/`requireDoctor`, throws typed `AuthError`), `clinical-audit.ts` (append-only writes to `clinical_access_log` — never UPDATE/DELETE it). Importing `db-helpers.ts` from a route file leaks `postgres` into the client bundle — always call server fns from routes.
+- Server-only modules (`@/db/index.server`, `auth.server`, `storage.server`, `clinical-html.server`, `pdf-generate.server`, …) can be pulled in lazily via the dynamic-import wrappers in `src/lib/server-imports.ts` (`getDb()`, `getAuth()`, `getFileStorage()`, …) to keep them out of the client bundle.
 
 ## Database
 
-- Drizzle ORM with `postgres-js` driver. `src/db/index.ts` creates the `db` client. Config in `drizzle.config.ts` (schema: `src/db/schema.ts`, dialect: postgresql, migrations dir: `src/db/migrations/`).
-- Tables: `user`, `session`, `account`, `verification` (better-auth) + `patients`, `specialties`, `doctors`, `doctorSpecialties` (junction, unique `doctorId+specialtyId`), `doctorSchedules`, `doctorTimeBlocks`, `appointments`, `galleryImages`, `medicalRecords`, `whatsappLog`, `notifications`.
+- Drizzle ORM with `postgres-js` driver. The client lives in `src/db/index.server.ts` — app code imports `@/db/index.server`; `src/db/index.ts` is a re-export for CLI scripts only (seed, `migrate-file-storage.ts`). Config in `drizzle.config.ts` (schema: `src/db/schema.ts`, dialect: postgresql, migrations dir: `src/db/migrations/`).
+- Tables: `user`, `session`, `account`, `verification` (better-auth) + `patients`, `specialties`, `doctors`, `doctorSpecialties` (junction, unique `doctorId+specialtyId`), `doctorSchedules`, `doctorTimeBlocks`, `appointments`, `galleryImages`, `medicalRecords`, `whatsappLog`, `notifications`, plus the clinical module (Plan 10): `clinicalNotes`, `clinicalNoteAddenda`, `recordAccessRequests`, `clinicalAccessLog`.
 
 ## Business Rules
 
 - **Softlock**: System unavailable outside 08:00–21:00 ARG time. `SoftlockBanner` in `DashboardLayout` shows the banner; `throwIfSoftlocked()` (`src/lib/softlock.ts`) blocks server operations.
+- **WhatsApp bot currently DISABLED** (since 2026-11, RAM usage + unused): `WHATSAPP_BOT_ENABLED = false` in `src/lib/features.ts` skips the WhatsApp crons below, makes `/api/whatsapp/*` return 503, and hides the admin WhatsApp tab and the doctor's notifications toggle. Flip to `true` to re-enable. "WhatsApp directo" (wa.me links, `directBooking`) is unaffected.
 - **Daily scheduler** (`src/lib/scheduler.ts`, `node-cron`, all `America/Argentina/Buenos_Aires`): 20:45 warm up the WhatsApp client → 21:00 send each opted-in doctor their next-day turnero as a per-doctor WhatsApp text message (`whatsapp-messages.ts`, staggered 3-5s apart to avoid bans) → 21:15 retry doctors not yet confirmed sent, deduped against `whatsapp_log` (`whatsapp-log.ts`) → 21:20 destroy the WhatsApp client to free memory. An hourly job also logs RSS/heap usage. `pdf-turnero.ts` still generates the printable turnero PDF used elsewhere (e.g. reception), separate from the WhatsApp text flow.
 - **WhatsApp endpoints** (middleware in `start.ts`, all admin-only): `/api/whatsapp/status`, `/api/whatsapp/init`, `/api/whatsapp/restart`, `/api/whatsapp/qr-image`, `/api/whatsapp/send-test`.
+- **Clinical module** (`docs/10-modulo-clinico.md`): access rules are the pure predicates in `src/lib/clinical-permissions.ts` (`canReadNote`/`canWriteNote`/`canSignNote`, no DB, exhaustively tested) and must be enforced inside the server fns — client-side hiding is not access control. Note bodies are HTML sanitized server-side by `sanitizeClinicalHtml()` (`clinical-html.server.ts`, closed tag allowlist) before saving; never trust client sanitization.
 
 ## Production (Render)
 
@@ -97,7 +101,8 @@ The team is working through a numbered series of audit-derived plans (`docs/01-.
 - `components.json` has a `@react-bits` registry configured.
 - Admin gallery tab: separate component at `src/components/admin/GalleryTab.tsx`.
 - Path alias: `@/*` → `src/*` (tsconfig, vitest, vite config).
-- Tests live either in `src/test/` (`dataUrl`, `gridLayout`, `phone`, `slots`, `storage`, `time-blocks`) or co-located next to the module under test (e.g. `src/lib/appointment-state.test.ts`, `src/lib/appointment-state-weekday.test.ts`); both are picked up by `vitest run` (jsdom env, `src/test/setup.ts`). CI's Unit Tests step is a blocking gate — see Commands above.
+- `AGENTS.md` is an older, stale copy of this file (wrong API/table lists, old scheduler description) — trust CLAUDE.md where they disagree. `DESIGN.md` holds the design tokens/UI conventions.
+- Tests live either in `src/test/` or co-located next to the module under test (e.g. `src/lib/appointment-state.test.ts`, `src/lib/clinical-permissions.test.ts`); both are picked up by `vitest run` (jsdom env, `src/test/setup.ts`). CI's Unit Tests step is a blocking gate — see Commands above.
 
 ## Mobile Responsive Conventions
 
