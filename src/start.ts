@@ -1,5 +1,6 @@
 import { createStart, createMiddleware } from "@tanstack/react-start";
 import { renderErrorPage } from "./lib/error-page";
+import { WHATSAPP_BOT_ENABLED } from "./lib/features";
 
 const errorMiddleware = createMiddleware().server(async ({ next }) => {
   try {
@@ -27,6 +28,9 @@ const authApiMiddleware = createMiddleware().server(async ({ request, next }) =>
     const session = await auth.api.getSession({ headers: request.headers });
     if (!session?.user || session.user.role !== "admin") {
       return Response.json({ error: "No autorizado" }, { status: 401 });
+    }
+    if (!WHATSAPP_BOT_ENABLED) {
+      return Response.json({ error: "El bot de WhatsApp está desactivado" }, { status: 503 });
     }
   }
   if (url.pathname === "/api/whatsapp/status") {

@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { ProfileEditor } from "@/components/ProfileEditor";
 import { Switch } from "@/components/ui/switch";
 import { isValidArPhone } from "@/lib/phone";
+import { WHATSAPP_BOT_ENABLED } from "@/lib/features";
 import {
   getMyDoctorProfile,
   updateMyWhatsappPreference,
@@ -128,7 +129,7 @@ export function PerfilTab({ userId }: { userId: string }) {
   return (
     <div className="mt-6 space-y-6">
       <ProfileEditor />
-      <DoctorWhatsAppToggle userId={userId} />
+      {WHATSAPP_BOT_ENABLED && <DoctorWhatsAppToggle userId={userId} />}
       <DoctorDirectBookingToggle userId={userId} />
     </div>
   );
